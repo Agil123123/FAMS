@@ -1,21 +1,27 @@
 # ==========================================================
-# FAMS Backend - Multi-stage Dockerfile
+# FAMS Backend - Multi-stage Dockerfile (Monorepo)
 # ==========================================================
 
 # ── Stage 1: Install dependencies ─────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-COPY backend/package.json backend/package-lock.json* ./
-RUN npm ci --only=production && \
-    cp -R node_modules /prod_modules && \
-    npm ci
+# Copy root workspace config + lockfile
+COPY package.json package-lock.json ./
+# Copy backend package.json (npm workspace needs it)
+COPY backend/package.json ./backend/
+
+# Install all dependencies for build, then save prod-only for runner
+RUN npm ci && \
+    cp -r node_modules /prod_modules_all && \
+    npm ci --omit=dev && \
+    cp -r node_modules /prod_modules
 
 # ── Stage 2: Build ────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /prod_modules_all ./node_modules
 COPY backend/ .
 
 RUN npx prisma generate && \
@@ -33,6 +39,9 @@ RUN addgroup --system --gid 1001 nestjs && \
 COPY --from=deps /prod_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./
+
+# Copy only the prisma generated client (needed at runtime)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 

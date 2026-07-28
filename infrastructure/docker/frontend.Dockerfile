@@ -1,12 +1,16 @@
 # ==========================================================
-# FAMS Frontend - Multi-stage Dockerfile
+# FAMS Frontend - Multi-stage Dockerfile (Monorepo)
 # ==========================================================
 
 # ── Stage 1: Install dependencies ─────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json* ./
+# Copy root workspace config + lockfile
+COPY package.json package-lock.json ./
+# Copy frontend package.json (npm workspace needs it)
+COPY frontend/package.json ./frontend/
+
 RUN npm ci
 
 # ── Stage 2: Build ────────────────────────────────────────
