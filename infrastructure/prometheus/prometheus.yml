@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'fams-backend'
+    static_configs:
+      - targets: ['backend:3000']
+  - job_name: 'fams-nginx'
+    static_configs:
+      - targets: ['nginx:80']
+

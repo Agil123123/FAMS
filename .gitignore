@@ -19,9 +19,13 @@ out/
 # ==========================================================
 .env
 .env.local
+.env.development
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
+.env.staging
+.env.staging.local
 
 # ==========================================================
 # Prisma
@@ -58,9 +62,12 @@ coverage/
 .nyc_output/
 
 # ==========================================================
-# Docker
+# SSL Certificates
 # ==========================================================
-docker-data/
+infrastructure/nginx/ssl/*.pem
+infrastructure/nginx/ssl/*.key
+infrastructure/nginx/ssl/*.crt
+!infrastructure/nginx/ssl/.gitkeep
 
 # ==========================================================
 # Flutter / Mobile

@@ -59,41 +59,44 @@ async function bootstrap() {
     new LoggingInterceptor(logger),
   );
 
-  // Swagger
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(process.env.SWAGGER_TITLE || 'FAMS API')
-    .setDescription(
-      process.env.SWAGGER_DESCRIPTION ||
-        'Fiber Asset Management System API Documentation',
-    )
-    .setVersion(process.env.SWAGGER_VERSION || '1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Enter your JWT access token',
-      },
-      'access-token',
-    )
-    .addTag('Auth', 'Authentication endpoints')
-    .addTag('Users', 'User management endpoints')
-    .addTag('Roles', 'Role management endpoints')
-    .addTag('Permissions', 'Permission endpoints')
-    .addTag('System', 'System endpoints')
-    .build();
+  // Swagger (disabled in production via SWAGGER_ENABLED=false)
+  const swaggerEnabled = process.env.SWAGGER_ENABLED !== 'false';
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle(process.env.SWAGGER_TITLE || 'FAMS API')
+      .setDescription(
+        process.env.SWAGGER_DESCRIPTION ||
+          'Fiber Asset Management System API Documentation',
+      )
+      .setVersion(process.env.SWAGGER_VERSION || '1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter your JWT access token',
+        },
+        'access-token',
+      )
+      .addTag('Auth', 'Authentication endpoints')
+      .addTag('Users', 'User management endpoints')
+      .addTag('Roles', 'Role management endpoints')
+      .addTag('Permissions', 'Permission endpoints')
+      .addTag('System', 'System endpoints')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(
-    process.env.SWAGGER_PATH || 'api/docs',
-    app,
-    document,
-    {
-      swaggerOptions: {
-        persistAuthorization: true,
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup(
+      process.env.SWAGGER_PATH || 'api/docs',
+      app,
+      document,
+      {
+        swaggerOptions: {
+          persistAuthorization: true,
+        },
       },
-    },
-  );
+    );
+  }
 
   // Start
   const port = process.env.APP_PORT || 3000;
