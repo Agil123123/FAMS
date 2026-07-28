@@ -8,10 +8,11 @@ WORKDIR /app
 
 # Copy root workspace config + lockfile
 COPY package.json package-lock.json ./
-# Copy backend package.json (npm workspace needs it)
+# Copy both workspace package.json files (npm ci needs all workspace packages in lockfile)
 COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 
-# Install all dependencies for build, then save prod-only for runner
+# Install all deps first (for build), then prod-only (for runner)
 RUN npm ci && \
     cp -r node_modules /prod_modules_all && \
     npm ci --omit=dev && \

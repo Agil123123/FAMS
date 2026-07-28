@@ -8,7 +8,8 @@ WORKDIR /app
 
 # Copy root workspace config + lockfile
 COPY package.json package-lock.json ./
-# Copy frontend package.json (npm workspace needs it)
+# Copy both workspace package.json files (npm ci needs all workspace packages in lockfile)
+COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
 RUN npm ci
