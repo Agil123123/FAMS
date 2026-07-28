@@ -1,0 +1,552 @@
+# ==========================================================
+# FAMS ENVIRONMENT CONFIGURATION
+# File    : 14_environment_config.yaml
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+environment:
+
+# ==========================================================
+# PROJECT
+# ==========================================================
+
+  project:
+
+    name: FAMS
+
+    full_name: Fiber Asset Management System
+
+    version: 1.0.0
+
+    timezone: Asia/Jakarta
+
+    locale: id-ID
+
+# ==========================================================
+# ENVIRONMENTS
+# ==========================================================
+
+  profiles:
+
+    - development
+    - staging
+    - production
+
+# ==========================================================
+# BACKEND
+# ==========================================================
+
+  backend:
+
+    framework: NestJS
+
+    host:
+
+      development: localhost
+
+      staging: api-staging.example.com
+
+      production: api.example.com
+
+    port:
+
+      development: 3000
+
+      staging: 3000
+
+      production: 3000
+
+# ==========================================================
+# FRONTEND
+# ==========================================================
+
+  frontend:
+
+    framework: NextJS
+
+    host:
+
+      development: localhost
+
+      staging: app-staging.example.com
+
+      production: app.example.com
+
+    port:
+
+      development: 3001
+
+      staging: 3001
+
+      production: 3001
+
+# ==========================================================
+# MOBILE
+# ==========================================================
+
+  mobile:
+
+    framework: Flutter
+
+    api_source: backend
+
+# ==========================================================
+# DATABASE
+# ==========================================================
+
+  database:
+
+    engine: PostgreSQL
+
+    extension:
+
+      - PostGIS
+
+    host:
+
+      development: postgres
+
+      staging: postgres
+
+      production: postgres
+
+    port: 5432
+
+    database:
+
+      development: fams_dev
+
+      staging: fams_staging
+
+      production: fams
+
+    ssl:
+
+      development: false
+
+      staging: true
+
+      production: true
+
+# ==========================================================
+# REDIS
+# ==========================================================
+
+  redis:
+
+    host:
+
+      development: redis
+
+      staging: redis
+
+      production: redis
+
+    port: 6379
+
+# ==========================================================
+# BULLMQ
+# ==========================================================
+
+  bullmq:
+
+    queue_prefix: fams
+
+    retry: 3
+
+# ==========================================================
+# MINIO
+# ==========================================================
+
+  storage:
+
+    provider: MinIO
+
+    endpoint:
+
+      development: minio:9000
+
+      staging: minio:9000
+
+      production: storage.example.com
+
+    buckets:
+
+      assets
+
+      documents
+
+      images
+
+      reports
+
+      backups
+
+      attachments
+
+# ==========================================================
+# JWT
+# ==========================================================
+
+  jwt:
+
+    algorithm: HS256
+
+    access_token:
+
+      expire: 1h
+
+    refresh_token:
+
+      expire: 30d
+
+# ==========================================================
+# PASSWORD POLICY
+# ==========================================================
+
+  password:
+
+    minimum_length: 8
+
+    uppercase: true
+
+    lowercase: true
+
+    number: true
+
+    special_character: true
+
+    hash: Argon2id
+
+# ==========================================================
+# SESSION
+# ==========================================================
+
+  session:
+
+    idle_timeout: 30m
+
+    remember_me: true
+
+# ==========================================================
+# CORS
+# ==========================================================
+
+  cors:
+
+    enabled: true
+
+    credentials: true
+
+# ==========================================================
+# SMTP
+# ==========================================================
+
+  smtp:
+
+    provider: SMTP
+
+    port: 587
+
+    tls: true
+
+# ==========================================================
+# TELEGRAM
+# ==========================================================
+
+  telegram:
+
+    enabled: true
+
+    notification: true
+
+# ==========================================================
+# WHATSAPP
+# ==========================================================
+
+  whatsapp:
+
+    enabled: true
+
+    provider: configurable
+
+# ==========================================================
+# AI
+# ==========================================================
+
+  ai:
+
+    provider:
+
+      - OpenAI
+
+      - Google Gemini
+
+      - Ollama
+
+    default: Google Gemini
+
+    temperature: 0.2
+
+    max_tokens: 4096
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+  gis:
+
+    map:
+
+      provider: MapLibre
+
+    tile:
+
+      provider: OpenStreetMap
+
+    srid: 4326
+
+# ==========================================================
+# FILE UPLOAD
+# ==========================================================
+
+  upload:
+
+    max_size_mb: 20
+
+    allowed_extensions:
+
+      - pdf
+      - csv
+      - xlsx
+      - jpg
+      - jpeg
+      - png
+      - svg
+      - webp
+      - kml
+      - kmz
+
+# ==========================================================
+# CACHE
+# ==========================================================
+
+  cache:
+
+    dashboard: 60
+
+    gis: 300
+
+    report: 600
+
+    lookup: 300
+
+# ==========================================================
+# LOGGING
+# ==========================================================
+
+  logging:
+
+    level:
+
+      development: debug
+
+      staging: info
+
+      production: warn
+
+    rotation: daily
+
+    retention_days: 30
+
+# ==========================================================
+# AUDIT
+# ==========================================================
+
+  audit:
+
+    enabled: true
+
+    keep_days: 365
+
+# ==========================================================
+# BACKUP
+# ==========================================================
+
+  backup:
+
+    database:
+
+      enabled: true
+
+      schedule: daily
+
+    storage:
+
+      enabled: true
+
+      schedule: weekly
+
+    retention_days: 30
+
+# ==========================================================
+# HEALTH CHECK
+# ==========================================================
+
+  healthcheck:
+
+    endpoint: /health
+
+    interval_seconds: 30
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+  monitoring:
+
+    prometheus: true
+
+    grafana: true
+
+    loki: true
+
+# ==========================================================
+# SECURITY
+# ==========================================================
+
+  security:
+
+    helmet: true
+
+    csrf: true
+
+    xss_protection: true
+
+    sql_injection_protection: true
+
+    rate_limit:
+
+      enabled: true
+
+      requests: 100
+
+      per_minutes: 1
+
+# ==========================================================
+# FEATURE FLAGS
+# ==========================================================
+
+  features:
+
+    ai_assistant: true
+
+    notifications: true
+
+    telegram: true
+
+    whatsapp: true
+
+    report_scheduler: true
+
+    dark_mode: true
+
+    offline_mobile: true
+
+# ==========================================================
+# REQUIRED ENV VARIABLES
+# ==========================================================
+
+required_env:
+
+  - APP_NAME
+  - APP_ENV
+  - APP_URL
+
+  - DATABASE_URL
+
+  - REDIS_HOST
+  - REDIS_PORT
+
+  - JWT_SECRET
+  - JWT_REFRESH_SECRET
+
+  - MINIO_ENDPOINT
+  - MINIO_ACCESS_KEY
+  - MINIO_SECRET_KEY
+
+  - SMTP_HOST
+  - SMTP_PORT
+  - SMTP_USERNAME
+  - SMTP_PASSWORD
+
+  - TELEGRAM_BOT_TOKEN
+  - TELEGRAM_CHAT_ID
+
+  - WHATSAPP_API_KEY
+
+  - OPENAI_API_KEY
+  - GEMINI_API_KEY
+
+  - MAPTILER_API_KEY
+
+# ==========================================================
+# DOCKER SERVICES
+# ==========================================================
+
+docker:
+
+  services:
+
+    - backend
+    - frontend
+    - postgres
+    - redis
+    - minio
+    - nginx
+    - bullmq
+    - prometheus
+    - grafana
+    - loki
+
+# ==========================================================
+# DEPLOYMENT
+# ==========================================================
+
+deployment:
+
+  reverse_proxy: Nginx
+
+  ssl: Let's Encrypt
+
+  container: Docker
+
+  orchestrator: Docker Compose
+
+# ==========================================================
+# ANTIGRAVITY RULES
+# ==========================================================
+
+generate:
+
+  create:
+
+    - .env.example
+    - .env.development
+    - .env.staging
+    - .env.production
+
+  validate_required_env: true
+
+  never_hardcode_secret: true
+
+  use_environment_variable_only: true
+
+  generate_docker_compose: true
+
+  generate_nginx_config: true
+
+  generate_healthcheck: true
+
+  production_ready: true

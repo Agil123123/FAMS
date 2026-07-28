@@ -1,0 +1,1020 @@
+// ==========================================================
+// FAMS Prisma Schema
+// Database : PostgreSQL 17 + PostGIS
+// Convention: UUID PK, snake_case, soft delete, audit columns
+// ==========================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis, pgcrypto, uuidOssp(map: "uuid-ossp")]
+}
+
+// ==========================================================
+// ENUMS
+// ==========================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum WorkOrderStatus {
+  OPEN
+  ASSIGNED
+  ACCEPTED
+  ON_SITE
+  IN_PROGRESS
+  COMPLETED
+  APPROVED
+  CLOSED
+}
+
+// ==========================================================
+// USERS & ROLES
+// ==========================================================
+
+model User {
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username   String     @unique @db.VarChar(50)
+  email      String     @unique @db.VarChar(100)
+  password   String     @db.VarChar(255)
+  full_name  String     @db.VarChar(100)
+  phone      String?    @db.VarChar(20)
+  avatar     String?    @db.VarChar(500)
+  status     UserStatus @default(ACTIVE)
+  last_login DateTime?  @db.Timestamptz
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  user_roles UserRole[]
+
+  @@index([email])
+  @@index([username])
+  @@index([status])
+  @@index([deleted_at])
+  @@map("users")
+}
+
+model Role {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String  @unique @db.VarChar(50)
+  description String? @db.VarChar(255)
+  is_system   Boolean @default(false)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  user_roles       UserRole[]
+  role_permissions RolePermission[]
+
+  @@index([name])
+  @@index([deleted_at])
+  @@map("roles")
+}
+
+model Permission {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String  @unique @db.VarChar(100)
+  module      String  @db.VarChar(50)
+  action      String  @db.VarChar(50)
+  description String? @db.VarChar(255)
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  role_permissions RolePermission[]
+
+  @@index([module])
+  @@index([name])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  role_id       String @db.Uuid
+  permission_id String @db.Uuid
+
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@index([role_id])
+  @@index([permission_id])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id String @db.Uuid
+  role_id String @db.Uuid
+
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id])
+  @@index([user_id])
+  @@index([role_id])
+  @@map("user_roles")
+}
+
+// ==========================================================
+// MASTER TABLES
+// ==========================================================
+
+model Branch {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String  @db.VarChar(100)
+  code        String  @unique @db.VarChar(50)
+  description String? @db.VarChar(255)
+
+  areas Area[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("branches")
+}
+
+model Area {
+  id        String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String @db.VarChar(100)
+  code      String @unique @db.VarChar(50)
+  branch_id String @db.Uuid
+
+  branch   Branch    @relation(fields: [branch_id], references: [id])
+  villages Village[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([branch_id])
+  @@map("areas")
+}
+
+model Village {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name    String @db.VarChar(100)
+  code    String @unique @db.VarChar(50)
+  area_id String @db.Uuid
+
+  area Area @relation(fields: [area_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([area_id])
+  @@map("villages")
+}
+
+model Vendor {
+  id   String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name String @db.VarChar(100)
+  code String @unique @db.VarChar(50)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  assets Asset[]
+  @@map("vendors")
+}
+
+model AssetType {
+  id   String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name String @db.VarChar(100)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  assets Asset[]
+  @@map("asset_types")
+}
+
+model CableType {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String @db.VarChar(100)
+  core_count Int
+
+  fiber_cables FiberCable[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("cable_types")
+}
+
+model SplitterType {
+  id        String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String @db.VarChar(100)
+  ratio_in  Int
+  ratio_out Int
+
+  splitters Splitter[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("splitter_types")
+}
+
+model PackageProfile {
+  id         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String  @db.VarChar(100)
+  speed_mbps Int
+  price      Decimal @db.Decimal(10, 2)
+
+  customer_packages CustomerPackage[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("package_profiles")
+}
+
+// ==========================================================
+// NETWORK
+// ==========================================================
+
+model Olt {
+  id         String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code String                                @unique @db.VarChar(100)
+  name       String                                @db.VarChar(100)
+  ip_address String?                               @db.VarChar(45)
+  geom       Unsupported("geometry(Point, 4326)")?
+
+  pon_ports PonPort[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("olts")
+}
+
+model PonPort {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  olt_id     String @db.Uuid
+  port_index Int
+
+  olt  Olt   @relation(fields: [olt_id], references: [id])
+  odcs Odc[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([olt_id])
+  @@map("pon_ports")
+}
+
+model Odc {
+  id          String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code  String                                @unique @db.VarChar(100)
+  name        String                                @db.VarChar(100)
+  pon_port_id String                                @db.Uuid
+  geom        Unsupported("geometry(Point, 4326)")?
+
+  pon_port PonPort   @relation(fields: [pon_port_id], references: [id])
+  closures Closure[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([pon_port_id])
+  @@map("odcs")
+}
+
+model Closure {
+  id         String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code String                                @unique @db.VarChar(100)
+  name       String                                @db.VarChar(100)
+  odc_id     String                                @db.Uuid
+  geom       Unsupported("geometry(Point, 4326)")?
+
+  odc  Odc   @relation(fields: [odc_id], references: [id])
+  odps Odp[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([odc_id])
+  @@map("closures")
+}
+
+model Odp {
+  id         String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code String                                @unique @db.VarChar(100)
+  name       String                                @db.VarChar(100)
+  closure_id String                                @db.Uuid
+  geom       Unsupported("geometry(Point, 4326)")?
+
+  closure   Closure    @relation(fields: [closure_id], references: [id])
+  splitters Splitter[]
+  customers Customer[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([closure_id])
+  @@map("odps")
+}
+
+model JointBox {
+  id         String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code String                                @unique @db.VarChar(100)
+  name       String                                @db.VarChar(100)
+  geom       Unsupported("geometry(Point, 4326)")?
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("joint_boxes")
+}
+
+model Pole {
+  id         String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code String                                @unique @db.VarChar(100)
+  name       String                                @db.VarChar(100)
+  geom       Unsupported("geometry(Point, 4326)")?
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("poles")
+}
+
+model Splitter {
+  id               String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code       String @unique @db.VarChar(100)
+  odp_id           String @db.Uuid
+  splitter_type_id String @db.Uuid
+
+  odp           Odp          @relation(fields: [odp_id], references: [id])
+  splitter_type SplitterType @relation(fields: [splitter_type_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([odp_id])
+  @@index([splitter_type_id])
+  @@map("splitters")
+}
+
+// ==========================================================
+// FIBER
+// ==========================================================
+
+model FiberCable {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code    String @unique @db.VarChar(100)
+  cable_type_id String @db.Uuid
+  length_meters Float
+
+  cable_type  CableType   @relation(fields: [cable_type_id], references: [id])
+  fiber_cores FiberCore[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([cable_type_id])
+  @@map("fiber_cables")
+}
+
+model FiberCore {
+  id             String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fiber_cable_id String  @db.Uuid
+  core_index     Int
+  color_code     String? @db.VarChar(50)
+
+  fiber_cable   FiberCable    @relation(fields: [fiber_cable_id], references: [id])
+  fiber_splices FiberSplice[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@unique([fiber_cable_id, core_index])
+  @@index([fiber_cable_id])
+  @@map("fiber_cores")
+}
+
+model FiberSplice {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fiber_core_id String @db.Uuid
+  attenuation   Float?
+
+  fiber_core FiberCore @relation(fields: [fiber_core_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([fiber_core_id])
+  @@map("fiber_splices")
+}
+
+model FiberRoute {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String  @db.VarChar(100)
+  description String? @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("fiber_routes")
+}
+
+model FiberTraceCache {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  trace_key  String @unique @db.VarChar(255)
+  trace_data Json
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("fiber_trace_cache")
+}
+
+// ==========================================================
+// GIS
+// ==========================================================
+
+model MapLayer {
+  id        String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String  @db.VarChar(100)
+  is_active Boolean @default(true)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("map_layers")
+}
+
+model MapMarker {
+  id    String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title String                                @db.VarChar(100)
+  geom  Unsupported("geometry(Point, 4326)")?
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("map_markers")
+}
+
+model MapPolygon {
+  id   String                                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name String                                  @db.VarChar(100)
+  geom Unsupported("geometry(Polygon, 4326)")?
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("map_polygons")
+}
+
+// ==========================================================
+// HOMEPASS
+// ==========================================================
+
+model Homepass {
+  id      String                                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name    String                                @db.VarChar(100)
+  address String                                @db.Text
+  geom    Unsupported("geometry(Point, 4326)")?
+
+  surveys Survey[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("homepasses")
+}
+
+model Survey {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  homepass_id String  @db.Uuid
+  notes       String? @db.Text
+  status      String  @db.VarChar(50)
+
+  homepass Homepass @relation(fields: [homepass_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([homepass_id])
+  @@map("surveys")
+}
+
+// ==========================================================
+// CUSTOMER
+// ==========================================================
+
+model Customer {
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_code String  @unique @db.VarChar(100)
+  full_name     String  @db.VarChar(150)
+  email         String? @db.VarChar(100)
+  phone         String  @db.VarChar(20)
+  address       String  @db.Text
+  status        String  @default("DRAFT") @db.VarChar(50)
+  odp_id        String  @db.Uuid
+
+  odp Odp @relation(fields: [odp_id], references: [id])
+
+  customer_package   CustomerPackage?
+  customer_onu       CustomerOnu?
+  customer_documents CustomerDocument[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([odp_id])
+  @@map("customers")
+}
+
+model CustomerPackage {
+  id                 String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id        String @unique @db.Uuid
+  package_profile_id String @db.Uuid
+
+  customer        Customer       @relation(fields: [customer_id], references: [id])
+  package_profile PackageProfile @relation(fields: [package_profile_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("customer_packages")
+}
+
+model CustomerOnu {
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id   String  @unique @db.Uuid
+  serial_number String  @unique @db.VarChar(100)
+  mac_address   String? @db.VarChar(50)
+
+  customer Customer @relation(fields: [customer_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("customer_onus")
+}
+
+model CustomerDocument {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id   String @db.Uuid
+  document_type String @db.VarChar(50)
+  file_url      String @db.Text
+
+  customer Customer @relation(fields: [customer_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([customer_id])
+  @@map("customer_documents")
+}
+
+// ==========================================================
+// WORK ORDER
+// ==========================================================
+
+model WorkOrder {
+  id          String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title       String          @db.VarChar(150)
+  description String?         @db.Text
+  status      WorkOrderStatus @default(OPEN)
+
+  tasks     WorkOrderTask[]
+  photos    WorkOrderPhoto[]
+  histories WorkOrderHistory[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([status])
+  @@map("work_orders")
+}
+
+model WorkOrderTask {
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  work_order_id String  @db.Uuid
+  description   String  @db.Text
+  is_completed  Boolean @default(false)
+
+  work_order WorkOrder @relation(fields: [work_order_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([work_order_id])
+  @@map("work_order_tasks")
+}
+
+model WorkOrderPhoto {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  work_order_id String @db.Uuid
+  photo_url     String @db.Text
+
+  work_order WorkOrder @relation(fields: [work_order_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([work_order_id])
+  @@map("work_order_photos")
+}
+
+model WorkOrderHistory {
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  work_order_id String          @db.Uuid
+  status        WorkOrderStatus
+  notes         String?         @db.Text
+
+  work_order WorkOrder @relation(fields: [work_order_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([work_order_id])
+  @@map("work_order_histories")
+}
+
+// ==========================================================
+// MONITORING
+// ==========================================================
+
+model Alarm {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  device_type String  @db.VarChar(50)
+  device_id   String  @db.Uuid
+  severity    String  @db.VarChar(20)
+  message     String  @db.Text
+  is_resolved Boolean @default(false)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("alarms")
+}
+
+model DeviceStatus {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  device_type String   @db.VarChar(50)
+  device_id   String   @db.Uuid
+  status      String   @db.VarChar(50)
+  last_seen   DateTime @db.Timestamptz
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("device_status")
+}
+
+model PerformanceMetric {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  device_type String @db.VarChar(50)
+  device_id   String @db.Uuid
+  metric_name String @db.VarChar(50)
+  value       Float
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("performance_metrics")
+}
+
+// ==========================================================
+// NOTIFICATION
+// ==========================================================
+
+model Notification {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title   String @db.VarChar(150)
+  message String @db.Text
+  type    String @db.VarChar(50)
+  user_id String @db.Uuid
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+model NotificationLog {
+  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  notification_id String  @db.Uuid
+  status          String  @db.VarChar(50)
+  error_message   String? @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("notification_logs")
+}
+
+// ==========================================================
+// SYSTEM
+// ==========================================================
+
+model AuditLog {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id     String? @db.Uuid
+  action      String  @db.VarChar(50)
+  module      String  @db.VarChar(50)
+  entity_type String  @db.VarChar(50)
+  entity_id   String? @db.Uuid
+  old_values  Json?
+  new_values  Json?
+  ip_address  String? @db.VarChar(45)
+  user_agent  String? @db.VarChar(500)
+
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([user_id])
+  @@index([module])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+model Attachment {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  entity_type String @db.VarChar(50)
+  entity_id   String @db.Uuid
+  file_url    String @db.Text
+  file_name   String @db.VarChar(255)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([entity_type, entity_id])
+  @@map("attachments")
+}
+
+model QrCode {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  qr_token    String @unique @db.VarChar(100)
+  entity_type String @db.VarChar(50)
+  entity_id   String @db.Uuid
+  scan_count  Int    @default(0)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@index([entity_type, entity_id])
+  @@map("qr_codes")
+}
+
+model Setting {
+  id    String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  key   String @unique @db.VarChar(100)
+  value String @db.Text
+  group String @db.VarChar(50)
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@index([key])
+  @@index([group])
+  @@map("settings")
+}
+
+model Job {
+  id      String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name    String  @db.VarChar(100)
+  status  String  @db.VarChar(50)
+  payload Json?
+  error   String? @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  @@map("jobs")
+}
+
+// ==========================================================
+// ASSET MANAGEMENT
+// ==========================================================
+
+model Asset {
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_code    String  @unique @db.VarChar(100)
+  name          String  @db.VarChar(150)
+  description   String? @db.Text
+  asset_type_id String  @db.Uuid
+  vendor_id     String? @db.Uuid
+  status        String  @default("ACTIVE") @db.VarChar(50)
+  geom          Unsupported("geometry(Point, 4326)")?
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  asset_type AssetType @relation(fields: [asset_type_id], references: [id])
+  vendor     Vendor?   @relation(fields: [vendor_id], references: [id])
+  
+  histories AssetHistory[]
+  documents AssetDocument[]
+  photos    AssetPhoto[]
+
+  @@index([asset_type_id])
+  @@index([vendor_id])
+  @@index([status])
+  @@map("assets")
+}
+
+model AssetHistory {
+  id         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_id   String  @db.Uuid
+  action     String  @db.VarChar(50)
+  notes      String? @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  asset Asset @relation(fields: [asset_id], references: [id])
+
+  @@index([asset_id])
+  @@map("asset_histories")
+}
+
+model AssetDocument {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_id      String @db.Uuid
+  document_type String @db.VarChar(50)
+  file_url      String @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  asset Asset @relation(fields: [asset_id], references: [id])
+
+  @@index([asset_id])
+  @@map("asset_documents")
+}
+
+model AssetPhoto {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_id   String @db.Uuid
+  photo_url  String @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+
+  asset Asset @relation(fields: [asset_id], references: [id])
+
+  @@index([asset_id])
+  @@map("asset_photos")
+}

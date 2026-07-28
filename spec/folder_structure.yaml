@@ -1,0 +1,136 @@
+# ==========================================================
+# FAMS FOLDER STRUCTURE
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+repository:
+
+  root:
+
+    backend:
+
+      src:
+        auth/
+        users/
+        roles/
+        permissions/
+
+        dashboard/
+
+        assets/
+        network/
+        fiber/
+        gis/
+        homepass/
+        customers/
+        workorders/
+        monitoring/
+        notifications/
+        reports/
+        ai/
+        system/
+
+        common/
+        config/
+        database/
+        guards/
+        interceptors/
+        middlewares/
+        filters/
+        decorators/
+        utils/
+
+      prisma/
+      test/
+
+    frontend:
+
+      src:
+
+        app/
+
+        components/
+          ui/
+          layout/
+          maps/
+          tables/
+          charts/
+          forms/
+
+        features/
+          dashboard/
+          assets/
+          network/
+          fiber/
+          gis/
+          homepass/
+          customers/
+          workorders/
+          monitoring/
+          reports/
+          ai/
+
+        hooks/
+        lib/
+        services/
+        store/
+        types/
+        utils/
+
+      public/
+
+    mobile:
+
+      lib/
+
+        core/
+        config/
+        shared/
+
+        features/
+          dashboard/
+          assets/
+          network/
+          fiber/
+          gis/
+          homepass/
+          customers/
+          workorders/
+          monitoring/
+          reports/
+          ai/
+
+        services/
+        repositories/
+        models/
+        widgets/
+        routes/
+
+    infrastructure:
+
+      docker/
+      nginx/
+      monitoring/
+      scripts/
+
+    docs/
+
+    spec/
+
+    .github/
+
+rules:
+
+  feature_first: true
+
+  no_duplicate_components: true
+
+  reusable_only: true
+
+  shared_component_directory:
+    - components/ui
+    - components/layout
+
+  feature_component_directory:
+    - features/*

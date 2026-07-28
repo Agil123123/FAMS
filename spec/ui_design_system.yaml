@@ -1,0 +1,622 @@
+# ==========================================================
+# FAMS UI DESIGN SYSTEM
+# File    : 11_ui_design_system.yaml
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+design_system:
+
+  application:
+
+    name: Fiber Asset Management System
+    short_name: FAMS
+    version: 1.0
+    ui_language: id-ID
+    dark_mode: true
+    responsive: true
+    accessibility: WCAG-AA
+
+# ==========================================================
+# BRANDING
+# ==========================================================
+
+branding:
+
+  logo:
+    type: svg
+
+  favicon:
+    type: svg
+
+  icon_library:
+    provider: Lucide
+
+  illustration:
+    style: Flat Minimal
+
+# ==========================================================
+# COLOR SYSTEM
+# ==========================================================
+
+colors:
+
+  primary:
+    50: "#EFF6FF"
+    100: "#DBEAFE"
+    200: "#BFDBFE"
+    300: "#93C5FD"
+    400: "#60A5FA"
+    500: "#3B82F6"
+    600: "#2563EB"
+    700: "#1D4ED8"
+    800: "#1E40AF"
+    900: "#1E3A8A"
+
+  secondary:
+    500: "#64748B"
+
+  success:
+    500: "#22C55E"
+
+  warning:
+    500: "#F59E0B"
+
+  danger:
+    500: "#EF4444"
+
+  info:
+    500: "#06B6D4"
+
+  background:
+
+    light: "#F8FAFC"
+
+    dark: "#0F172A"
+
+  surface:
+
+    light: "#FFFFFF"
+
+    dark: "#1E293B"
+
+  border:
+
+    light: "#E2E8F0"
+
+    dark: "#334155"
+
+  text:
+
+    primary_light: "#0F172A"
+
+    secondary_light: "#475569"
+
+    primary_dark: "#F8FAFC"
+
+    secondary_dark: "#CBD5E1"
+
+# ==========================================================
+# TYPOGRAPHY
+# ==========================================================
+
+typography:
+
+  font_family:
+
+    primary: Inter
+
+    mono: JetBrains Mono
+
+  headings:
+
+    h1:
+      size: 36
+      weight: 700
+
+    h2:
+      size: 30
+      weight: 700
+
+    h3:
+      size: 24
+      weight: 600
+
+    h4:
+      size: 20
+      weight: 600
+
+    h5:
+      size: 18
+      weight: 600
+
+    h6:
+      size: 16
+      weight: 600
+
+  body:
+
+    large:
+      size: 16
+
+    normal:
+      size: 14
+
+    small:
+      size: 13
+
+    caption:
+      size: 12
+
+# ==========================================================
+# SPACING
+# ==========================================================
+
+spacing:
+
+  xs: 4
+
+  sm: 8
+
+  md: 12
+
+  lg: 16
+
+  xl: 24
+
+  xxl: 32
+
+  xxxl: 48
+
+# ==========================================================
+# BORDER RADIUS
+# ==========================================================
+
+radius:
+
+  sm: 6
+
+  md: 8
+
+  lg: 12
+
+  xl: 16
+
+  full: 999
+
+# ==========================================================
+# SHADOW
+# ==========================================================
+
+shadow:
+
+  card: sm
+
+  modal: lg
+
+  dropdown: md
+
+# ==========================================================
+# GRID
+# ==========================================================
+
+grid:
+
+  desktop:
+
+    columns: 12
+
+  tablet:
+
+    columns: 8
+
+  mobile:
+
+    columns: 4
+
+# ==========================================================
+# BREAKPOINT
+# ==========================================================
+
+breakpoint:
+
+  mobile: 640
+
+  tablet: 768
+
+  laptop: 1024
+
+  desktop: 1280
+
+  ultrawide: 1536
+
+# ==========================================================
+# LAYOUT
+# ==========================================================
+
+layout:
+
+  sidebar:
+
+    width: 260
+
+    collapsed: 72
+
+  header:
+
+    height: 64
+
+  content:
+
+    padding: 24
+
+# ==========================================================
+# BUTTON
+# ==========================================================
+
+button:
+
+  variants:
+
+    - Primary
+    - Secondary
+    - Outline
+    - Ghost
+    - Danger
+    - Success
+    - Icon
+
+  sizes:
+
+    - Small
+    - Medium
+    - Large
+
+  states:
+
+    - Default
+    - Hover
+    - Focus
+    - Disabled
+    - Loading
+
+# ==========================================================
+# INPUT
+# ==========================================================
+
+input:
+
+  height: 40
+
+  radius: md
+
+  validation:
+
+    required_indicator: true
+
+    inline_error: true
+
+# ==========================================================
+# FORM
+# ==========================================================
+
+form:
+
+  label_position: top
+
+  spacing: 16
+
+  validation:
+
+    realtime: true
+
+    server_validation: true
+
+# ==========================================================
+# TABLE
+# ==========================================================
+
+table:
+
+  features:
+
+    - Search
+    - Filter
+    - Sort
+    - Pagination
+    - Export
+    - Sticky Header
+    - Column Visibility
+    - Row Selection
+
+  row_height: 48
+
+# ==========================================================
+# CARD
+# ==========================================================
+
+cards:
+
+  dashboard:
+
+    elevation: sm
+
+    padding: 20
+
+  asset:
+
+    elevation: sm
+
+  customer:
+
+    elevation: sm
+
+  odp:
+
+    elevation: sm
+
+  workorder:
+
+    elevation: sm
+
+# ==========================================================
+# BADGE
+# ==========================================================
+
+badge:
+
+  variants:
+
+    - Success
+    - Warning
+    - Danger
+    - Info
+    - Secondary
+
+# ==========================================================
+# STATUS COLOR
+# ==========================================================
+
+status:
+
+  Active: success
+
+  Inactive: secondary
+
+  Suspend: warning
+
+  Offline: danger
+
+  Maintenance: warning
+
+  Completed: success
+
+  Pending: info
+
+# ==========================================================
+# ICONS
+# ==========================================================
+
+icons:
+
+  provider: Lucide
+
+  default_size: 18
+
+# ==========================================================
+# MAP
+# ==========================================================
+
+map:
+
+  provider: MapLibre
+
+  default_zoom: 16
+
+  clustering: true
+
+  popup: true
+
+  fullscreen: true
+
+  layer_control: true
+
+  coordinate_display: true
+
+# ==========================================================
+# CHART
+# ==========================================================
+
+chart:
+
+  provider: Recharts
+
+  animation: true
+
+  responsive: true
+
+# ==========================================================
+# DIALOG
+# ==========================================================
+
+dialog:
+
+  variants:
+
+    - Confirmation
+    - Delete
+    - Create
+    - Update
+    - Information
+
+# ==========================================================
+# TOAST
+# ==========================================================
+
+toast:
+
+  position: top-right
+
+  duration: 3000
+
+  variants:
+
+    - Success
+    - Error
+    - Warning
+    - Info
+
+# ==========================================================
+# LOADING
+# ==========================================================
+
+loading:
+
+  skeleton: true
+
+  spinner: true
+
+  progress_bar: true
+
+# ==========================================================
+# EMPTY STATE
+# ==========================================================
+
+empty_state:
+
+  illustration: true
+
+  title: true
+
+  description: true
+
+  action_button: true
+
+# ==========================================================
+# ERROR STATE
+# ==========================================================
+
+error_state:
+
+  illustration: true
+
+  retry_button: true
+
+  support_information: true
+
+# ==========================================================
+# FILE UPLOAD
+# ==========================================================
+
+upload:
+
+  drag_drop: true
+
+  preview: true
+
+  max_size_mb: 20
+
+  allowed:
+
+    - jpg
+    - jpeg
+    - png
+    - pdf
+    - xlsx
+    - csv
+
+# ==========================================================
+# QR
+# ==========================================================
+
+qr:
+
+  scanner: true
+
+  printable: true
+
+  downloadable: true
+
+# ==========================================================
+# PAGE TEMPLATE
+# ==========================================================
+
+page_template:
+
+  required:
+
+    - Breadcrumb
+    - Page Title
+    - Action Toolbar
+    - Content
+    - Loading State
+    - Empty State
+    - Error State
+
+# ==========================================================
+# ACCESSIBILITY
+# ==========================================================
+
+accessibility:
+
+  keyboard_navigation: true
+
+  screen_reader: true
+
+  aria_label: true
+
+  focus_ring: true
+
+# ==========================================================
+# ANIMATION
+# ==========================================================
+
+animation:
+
+  page_transition: fade
+
+  modal: scale
+
+  drawer: slide
+
+  dropdown: fade
+
+  duration_ms: 200
+
+# ==========================================================
+# ANTIGRAVITY GENERATION RULES
+# ==========================================================
+
+generate:
+
+  ui_library: shadcn/ui
+
+  css_framework: TailwindCSS
+
+  icon_library: Lucide
+
+  chart_library: Recharts
+
+  map_library: MapLibre
+
+  form_library: React Hook Form
+
+  validation_library: Zod
+
+  table_library: TanStack Table
+
+  theme:
+
+    light: true
+
+    dark: true
+
+  responsive: mandatory
+
+  accessibility: mandatory
+
+  reusable_components: mandatory
+
+  mobile_first: true
+
+  production_ready: true

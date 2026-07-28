@@ -1,0 +1,406 @@
+# ==========================================================
+# FAMS PAGE SPECIFICATION
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+pages:
+
+# ==========================================================
+# DASHBOARD
+# ==========================================================
+
+  dashboard:
+
+    route: /dashboard
+    title: Dashboard
+
+    permission:
+      - dashboard.read
+
+    layout:
+      - Header
+      - Sidebar
+      - KPI Cards
+      - Alarm Widget
+      - Capacity Widget
+      - Activity Widget
+
+    actions:
+      - Refresh
+
+    apis:
+      - GET /dashboard/kpi
+      - GET /dashboard/activity
+      - GET /dashboard/alarm
+
+# ==========================================================
+# CUSTOMER LIST
+# ==========================================================
+
+  customer_list:
+
+    route: /customers
+    title: Customer List
+
+    permission:
+      - customer.read
+
+    components:
+      - SearchBox
+      - FilterPanel
+      - CustomerTable
+      - Pagination
+      - ExportButton
+
+    actions:
+      - Create
+      - View
+      - Edit
+      - Suspend
+      - Terminate
+      - Export
+
+    api:
+      - GET /customers
+
+# ==========================================================
+# CUSTOMER DETAIL
+# ==========================================================
+
+  customer_detail:
+
+    route: /customers/:id
+
+    tabs:
+      - Profile
+      - ONU
+      - Package
+      - Work Order
+      - Billing
+      - History
+
+    actions:
+      - Edit
+      - Relocate
+      - Suspend
+      - Terminate
+
+    api:
+      - GET /customers/{id}
+
+# ==========================================================
+# OLT LIST
+# ==========================================================
+
+  olt_list:
+
+    route: /olts
+
+    components:
+      - SearchBox
+      - OLTTable
+      - Pagination
+
+    actions:
+      - Create
+      - Edit
+      - Delete
+
+    api:
+      - GET /olts
+
+# ==========================================================
+# ODP LIST
+# ==========================================================
+
+  odp_list:
+
+    route: /odps
+
+    components:
+      - Search
+      - Filter
+      - ODPTable
+      - CapacityBadge
+
+    actions:
+      - View
+      - Edit
+      - QR
+      - Fiber Trace
+
+    api:
+      - GET /odps
+
+# ==========================================================
+# ODP DETAIL
+# ==========================================================
+
+  odp_detail:
+
+    route: /odps/:id
+
+    tabs:
+      - Overview
+      - Ports
+      - Customers
+      - Photos
+      - History
+
+    actions:
+      - Reserve Port
+      - Generate QR
+      - Trace Fiber
+
+    api:
+      - GET /odps/{id}
+
+# ==========================================================
+# FIBER TRACE
+# ==========================================================
+
+  fiber_trace:
+
+    route: /fiber/trace
+
+    components:
+      - Map
+      - TracePanel
+      - RouteTree
+
+    actions:
+      - Trace
+      - Export PDF
+
+    api:
+      - GET /fiber/trace/customer/{id}
+
+# ==========================================================
+# GIS MAP
+# ==========================================================
+
+  gis:
+
+    route: /gis
+
+    components:
+      - MapLibre
+      - LayerPanel
+      - Search
+      - Legend
+      - CoordinatePanel
+
+    actions:
+      - Add Marker
+      - Measure
+      - Nearest ODP
+      - Draw Polygon
+
+    api:
+      - GET /gis/assets
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+  homepass:
+
+    route: /homepasses
+
+    components:
+      - Map
+      - Table
+      - Filter
+
+    actions:
+      - Survey
+      - Convert To Customer
+
+    api:
+      - GET /homepasses
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+  workorder_list:
+
+    route: /workorders
+
+    components:
+      - Table
+      - Search
+      - StatusFilter
+
+    actions:
+      - Create
+      - Assign
+      - Complete
+      - Approve
+
+    api:
+      - GET /workorders
+
+# ==========================================================
+# WORK ORDER DETAIL
+# ==========================================================
+
+  workorder_detail:
+
+    route: /workorders/:id
+
+    tabs:
+      - Detail
+      - Checklist
+      - Photos
+      - Timeline
+
+    actions:
+      - Start
+      - Upload Photo
+      - Complete
+
+    api:
+      - GET /workorders/{id}
+
+# ==========================================================
+# ASSET LIST
+# ==========================================================
+
+  asset_list:
+
+    route: /assets
+
+    components:
+      - Search
+      - AssetTable
+      - Filter
+
+    actions:
+      - Create
+      - Edit
+      - Delete
+      - QR
+
+    api:
+      - GET /assets
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+  monitoring:
+
+    route: /monitoring
+
+    components:
+      - DeviceStatus
+      - AlarmTable
+      - KPI
+
+    actions:
+      - Refresh
+
+    api:
+      - GET /monitoring/dashboard
+
+# ==========================================================
+# REPORT
+# ==========================================================
+
+  reports:
+
+    route: /reports
+
+    components:
+      - ReportTable
+      - DateFilter
+
+    actions:
+      - Export PDF
+      - Export Excel
+
+    api:
+      - GET /reports/customer
+
+# ==========================================================
+# USER MANAGEMENT
+# ==========================================================
+
+  users:
+
+    route: /users
+
+    components:
+      - UserTable
+      - RoleTable
+
+    actions:
+      - Create
+      - Edit
+      - Reset Password
+
+    api:
+      - GET /users
+
+# ==========================================================
+# SETTINGS
+# ==========================================================
+
+  settings:
+
+    route: /system
+
+    tabs:
+      - General
+      - Backup
+      - Integration
+      - Audit
+
+    actions:
+      - Save
+      - Backup Now
+
+    api:
+      - GET /system/health
+
+# ==========================================================
+# AI ASSISTANT
+# ==========================================================
+
+  ai_chat:
+
+    route: /ai
+
+    components:
+      - ChatWindow
+      - PromptInput
+      - HistoryPanel
+
+    actions:
+      - Send
+      - Clear
+      - Export Chat
+
+    api:
+      - POST /ai/chat
+
+# ==========================================================
+# ANTIGRAVITY GENERATION
+# ==========================================================
+
+generate:
+
+  create_nextjs_page: true
+  create_layout: true
+  create_server_component: true
+  create_client_component: true
+  create_table: true
+  create_form: true
+  create_api_hooks: true
+  create_loading_state: true
+  create_empty_state: true
+  create_error_state: true
+  create_breadcrumb: true
+  create_permission_guard: true

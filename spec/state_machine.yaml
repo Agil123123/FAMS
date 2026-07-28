@@ -1,0 +1,530 @@
+# ==========================================================
+# FAMS STATE MACHINE
+# File    : 13_state_machine.yaml
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+state_machine:
+
+# ==========================================================
+# GLOBAL RULES
+# ==========================================================
+
+  global:
+
+    initial_state: required
+
+    final_state: optional
+
+    rollback: mandatory
+
+    audit_log: mandatory
+
+    state_history: mandatory
+
+    notification: optional
+
+    approval_required: configurable
+
+# ==========================================================
+# CUSTOMER LIFECYCLE
+# ==========================================================
+
+  customer:
+
+    initial: DRAFT
+
+    final:
+      - TERMINATED
+
+    states:
+
+      - DRAFT
+      - SURVEY
+      - WAITING_APPROVAL
+      - APPROVED
+      - WAITING_INSTALLATION
+      - INSTALLATION
+      - ACTIVATION
+      - ACTIVE
+      - SUSPENDED
+      - TERMINATED
+
+    transitions:
+
+      DRAFT:
+        - SURVEY
+
+      SURVEY:
+        - WAITING_APPROVAL
+        - DRAFT
+
+      WAITING_APPROVAL:
+        - APPROVED
+        - SURVEY
+
+      APPROVED:
+        - WAITING_INSTALLATION
+
+      WAITING_INSTALLATION:
+        - INSTALLATION
+
+      INSTALLATION:
+        - ACTIVATION
+        - WAITING_INSTALLATION
+
+      ACTIVATION:
+        - ACTIVE
+
+      ACTIVE:
+        - SUSPENDED
+        - TERMINATED
+
+      SUSPENDED:
+        - ACTIVE
+        - TERMINATED
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+  work_order:
+
+    initial: OPEN
+
+    final:
+      - CLOSED
+      - CANCELLED
+
+    states:
+
+      - OPEN
+      - ASSIGNED
+      - ACCEPTED
+      - ON_SITE
+      - IN_PROGRESS
+      - WAITING_APPROVAL
+      - COMPLETED
+      - APPROVED
+      - CLOSED
+      - CANCELLED
+
+    transitions:
+
+      OPEN:
+        - ASSIGNED
+        - CANCELLED
+
+      ASSIGNED:
+        - ACCEPTED
+
+      ACCEPTED:
+        - ON_SITE
+
+      ON_SITE:
+        - IN_PROGRESS
+
+      IN_PROGRESS:
+        - WAITING_APPROVAL
+
+      WAITING_APPROVAL:
+        - COMPLETED
+        - IN_PROGRESS
+
+      COMPLETED:
+        - APPROVED
+
+      APPROVED:
+        - CLOSED
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+  homepass:
+
+    initial: SURVEY
+
+    final:
+      - CUSTOMER
+
+    states:
+
+      - SURVEY
+      - VALIDATION
+      - AVAILABLE
+      - RESERVED
+      - CUSTOMER
+
+    transitions:
+
+      SURVEY:
+        - VALIDATION
+
+      VALIDATION:
+        - AVAILABLE
+        - SURVEY
+
+      AVAILABLE:
+        - RESERVED
+
+      RESERVED:
+        - CUSTOMER
+        - AVAILABLE
+
+# ==========================================================
+# ODP PORT
+# ==========================================================
+
+  odp_port:
+
+    initial: AVAILABLE
+
+    states:
+
+      - AVAILABLE
+      - RESERVED
+      - USED
+      - MAINTENANCE
+      - DAMAGED
+
+    transitions:
+
+      AVAILABLE:
+        - RESERVED
+
+      RESERVED:
+        - USED
+        - AVAILABLE
+
+      USED:
+        - AVAILABLE
+        - MAINTENANCE
+
+      MAINTENANCE:
+        - AVAILABLE
+        - DAMAGED
+
+      DAMAGED:
+        - AVAILABLE
+
+# ==========================================================
+# FIBER CORE
+# ==========================================================
+
+  fiber_core:
+
+    initial: FREE
+
+    states:
+
+      - FREE
+      - RESERVED
+      - SPLICED
+      - ACTIVE
+      - BROKEN
+      - MAINTENANCE
+
+    transitions:
+
+      FREE:
+        - RESERVED
+
+      RESERVED:
+        - SPLICED
+        - FREE
+
+      SPLICED:
+        - ACTIVE
+
+      ACTIVE:
+        - MAINTENANCE
+        - BROKEN
+
+      MAINTENANCE:
+        - ACTIVE
+
+      BROKEN:
+        - MAINTENANCE
+
+# ==========================================================
+# FIBER CABLE
+# ==========================================================
+
+  fiber_cable:
+
+    initial: PLANNED
+
+    states:
+
+      - PLANNED
+      - INSTALLED
+      - ACTIVE
+      - MAINTENANCE
+      - DAMAGED
+      - RETIRED
+
+    transitions:
+
+      PLANNED:
+        - INSTALLED
+
+      INSTALLED:
+        - ACTIVE
+
+      ACTIVE:
+        - MAINTENANCE
+        - DAMAGED
+        - RETIRED
+
+      MAINTENANCE:
+        - ACTIVE
+
+      DAMAGED:
+        - MAINTENANCE
+        - RETIRED
+
+# ==========================================================
+# OLT
+# ==========================================================
+
+  olt:
+
+    initial: PLANNED
+
+    states:
+
+      - PLANNED
+      - INSTALLED
+      - ACTIVE
+      - MAINTENANCE
+      - OFFLINE
+      - RETIRED
+
+    transitions:
+
+      PLANNED:
+        - INSTALLED
+
+      INSTALLED:
+        - ACTIVE
+
+      ACTIVE:
+        - MAINTENANCE
+        - OFFLINE
+        - RETIRED
+
+      OFFLINE:
+        - ACTIVE
+
+      MAINTENANCE:
+        - ACTIVE
+
+# ==========================================================
+# ODP
+# ==========================================================
+
+  odp:
+
+    initial: PLANNED
+
+    states:
+
+      - PLANNED
+      - INSTALLED
+      - ACTIVE
+      - MAINTENANCE
+      - DAMAGED
+      - RETIRED
+
+# ==========================================================
+# SPLITTER
+# ==========================================================
+
+  splitter:
+
+    initial: AVAILABLE
+
+    states:
+
+      - AVAILABLE
+      - INSTALLED
+      - ACTIVE
+      - FULL
+      - DAMAGED
+
+# ==========================================================
+# ASSET
+# ==========================================================
+
+  asset:
+
+    initial: PLANNED
+
+    states:
+
+      - PLANNED
+      - PROCURED
+      - INSTALLED
+      - ACTIVE
+      - MAINTENANCE
+      - RETIRED
+
+# ==========================================================
+# INCIDENT
+# ==========================================================
+
+  incident:
+
+    initial: OPEN
+
+    final:
+      - CLOSED
+
+    states:
+
+      - OPEN
+      - INVESTIGATING
+      - IN_PROGRESS
+      - RESOLVED
+      - CLOSED
+
+# ==========================================================
+# APPROVAL FLOW
+# ==========================================================
+
+  approval:
+
+    states:
+
+      - WAITING
+      - APPROVED
+      - REJECTED
+      - REVISED
+
+# ==========================================================
+# IMPORT JOB
+# ==========================================================
+
+  import:
+
+    states:
+
+      - QUEUED
+      - VALIDATING
+      - IMPORTING
+      - COMPLETED
+      - FAILED
+
+# ==========================================================
+# EXPORT JOB
+# ==========================================================
+
+  export:
+
+    states:
+
+      - QUEUED
+      - PROCESSING
+      - READY
+      - DOWNLOADED
+      - FAILED
+
+# ==========================================================
+# BACKUP
+# ==========================================================
+
+  backup:
+
+    states:
+
+      - QUEUED
+      - RUNNING
+      - COMPLETED
+      - FAILED
+
+# ==========================================================
+# AI ANALYSIS
+# ==========================================================
+
+  ai_analysis:
+
+    states:
+
+      - REQUESTED
+      - PROCESSING
+      - COMPLETED
+      - FAILED
+
+# ==========================================================
+# STATE VALIDATION RULES
+# ==========================================================
+
+validation:
+
+  impossible_transition:
+    reject: true
+
+  invalid_state:
+    reject: true
+
+  duplicate_transition:
+    reject: true
+
+  circular_transition:
+    allow: false
+
+  log_every_transition: true
+
+  save_transition_history: true
+
+# ==========================================================
+# AUTOMATIC ACTIONS
+# ==========================================================
+
+automation:
+
+  on_state_change:
+
+    create_audit_log: true
+
+    update_timestamp: true
+
+    send_notification: configurable
+
+    trigger_webhook: configurable
+
+    update_dashboard: true
+
+# ==========================================================
+# ANTIGRAVITY RULES
+# ==========================================================
+
+generate:
+
+  backend:
+
+    implement_state_machine: mandatory
+
+    validate_transition: mandatory
+
+    transaction_required: true
+
+  frontend:
+
+    display_current_state: mandatory
+
+    disable_invalid_action: mandatory
+
+    state_badge: mandatory
+
+  mobile:
+
+    state_validation: mandatory
+
+    offline_queue: mandatory
+
+  never_skip_transition_validation: true
+
+  production_ready: true

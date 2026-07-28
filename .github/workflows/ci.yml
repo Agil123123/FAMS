@@ -1,0 +1,146 @@
+# ==========================================================
+# FAMS CI Pipeline
+# Runs on: Pull Request to main/develop
+# ==========================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+
+  # ── Backend ──────────────────────────────────────────────
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: fams_test
+          POSTGRES_USER: fams_test
+          POSTGRES_PASSWORD: fams_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fams_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Run Prisma Migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://fams_test:fams_test@localhost:5432/fams_test?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Unit Tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://fams_test:fams_test@localhost:5432/fams_test?schema=public
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: ci_test_jwt_secret_32_chars_min__
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_32_chars__
+        run: npm run test -- --coverage
+
+      - name: E2E Tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://fams_test:fams_test@localhost:5432/fams_test?schema=public
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: ci_test_jwt_secret_32_chars_min__
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_32_chars__
+        run: npm run test:e2e
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+  # ── Frontend ─────────────────────────────────────────────
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+        run: npm run build
+
+  # ── Docker Build Verification ────────────────────────────
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Docker Compose config
+        run: docker compose config
+
+      - name: Build Docker images
+        run: docker compose build

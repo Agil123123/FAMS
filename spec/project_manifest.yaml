@@ -1,0 +1,357 @@
+# ==========================================================
+# FAMS MODULE MANIFEST
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+modules:
+
+# ==========================================================
+# DASHBOARD
+# ==========================================================
+
+  dashboard:
+
+    route: /dashboard
+    icon: LayoutDashboard
+
+    permissions:
+      - dashboard.read
+
+    pages:
+      - Dashboard
+
+    apis:
+      - GET /dashboard/kpi
+      - GET /dashboard/activity
+      - GET /dashboard/alarm
+      - GET /dashboard/capacity
+
+# ==========================================================
+# ASSET MANAGEMENT
+# ==========================================================
+
+  asset:
+
+    route: /assets
+    icon: Boxes
+
+    permissions:
+      - asset.read
+      - asset.create
+      - asset.update
+      - asset.delete
+
+    pages:
+      - Asset List
+      - Asset Detail
+      - Asset Create
+      - Asset Edit
+
+    apis:
+      - GET /assets
+      - GET /assets/{id}
+      - POST /assets
+      - PATCH /assets/{id}
+      - DELETE /assets/{id}
+
+# ==========================================================
+# NETWORK
+# ==========================================================
+
+  network:
+
+    route: /network
+    icon: Network
+
+    permissions:
+      - network.read
+      - network.write
+
+    pages:
+      - OLT
+      - PON
+      - ODC
+      - ODP
+      - Splitter
+      - Pole
+      - Closure
+      - Joint Box
+
+    apis:
+      - GET /olts
+      - GET /pons
+      - GET /odcs
+      - GET /odps
+
+# ==========================================================
+# FIBER
+# ==========================================================
+
+  fiber:
+
+    route: /fiber
+    icon: Cable
+
+    permissions:
+      - fiber.read
+      - fiber.write
+
+    pages:
+      - Cable
+      - Fiber Core
+      - Fiber Splice
+      - Fiber Trace
+      - Impact Analysis
+
+    apis:
+      - GET /fiber/cables
+      - GET /fiber/cores
+      - GET /fiber/splices
+      - GET /fiber/trace/customer/{id}
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+  gis:
+
+    route: /gis
+    icon: Map
+
+    permissions:
+      - gis.read
+
+    pages:
+      - GIS Dashboard
+      - Layer Manager
+      - Map Asset
+      - Homepass Map
+
+    apis:
+      - GET /gis/assets
+      - GET /gis/homepasses
+      - POST /gis/nearest-odp
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+  homepass:
+
+    route: /homepass
+    icon: House
+
+    permissions:
+      - homepass.read
+      - homepass.write
+
+    pages:
+      - Homepass List
+      - Survey
+      - Coverage
+
+    apis:
+      - GET /homepasses
+      - POST /homepasses
+
+# ==========================================================
+# CUSTOMER
+# ==========================================================
+
+  customer:
+
+    route: /customers
+    icon: Users
+
+    permissions:
+      - customer.read
+      - customer.create
+      - customer.update
+      - customer.delete
+
+    pages:
+      - Customer List
+      - Customer Detail
+      - Customer Create
+      - Customer Edit
+
+    apis:
+      - GET /customers
+      - POST /customers
+      - PATCH /customers/{id}
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+  workorder:
+
+    route: /workorders
+    icon: ClipboardList
+
+    permissions:
+      - workorder.read
+      - workorder.create
+      - workorder.update
+      - workorder.approve
+
+    pages:
+      - Work Order List
+      - Work Order Detail
+      - Assignment
+      - Approval
+
+    apis:
+      - GET /workorders
+      - POST /workorders
+      - PATCH /workorders/{id}
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+  monitoring:
+
+    route: /monitoring
+    icon: Activity
+
+    permissions:
+      - monitoring.read
+
+    pages:
+      - Dashboard
+      - Alarm
+      - Device Status
+
+    apis:
+      - GET /monitoring/dashboard
+      - GET /monitoring/alarm
+
+# ==========================================================
+# REPORT
+# ==========================================================
+
+  report:
+
+    route: /reports
+    icon: FileBarChart
+
+    permissions:
+      - report.read
+
+    pages:
+      - Customer Report
+      - Network Report
+      - Work Order Report
+
+    apis:
+      - GET /reports/customer
+      - GET /reports/network
+      - GET /reports/workorder
+
+# ==========================================================
+# USER MANAGEMENT
+# ==========================================================
+
+  user_management:
+
+    route: /users
+    icon: Shield
+
+    permissions:
+      - user.read
+      - user.create
+      - user.update
+      - user.delete
+
+    pages:
+      - User List
+      - Role
+      - Permission
+
+    apis:
+      - GET /users
+      - POST /users
+      - GET /roles
+
+# ==========================================================
+# NOTIFICATION
+# ==========================================================
+
+  notification:
+
+    route: /notifications
+    icon: Bell
+
+    permissions:
+      - notification.read
+
+    pages:
+      - Notification Center
+
+    apis:
+      - GET /notifications
+
+# ==========================================================
+# AI ASSISTANT
+# ==========================================================
+
+  ai:
+
+    route: /ai
+    icon: Bot
+
+    permissions:
+      - ai.use
+
+    pages:
+      - AI Chat
+      - AI Recommendation
+      - AI Analysis
+
+    apis:
+      - POST /ai/chat
+      - POST /ai/fiber-trace
+      - POST /ai/nearest-odp
+      - POST /ai/capacity-analysis
+
+# ==========================================================
+# SYSTEM
+# ==========================================================
+
+  system:
+
+    route: /system
+    icon: Settings
+
+    permissions:
+      - system.read
+      - system.admin
+
+    pages:
+      - Settings
+      - Backup
+      - Audit Log
+      - Health Check
+
+    apis:
+      - GET /system/health
+      - POST /system/backup
+      - GET /audit
+
+# ==========================================================
+# ANTIGRAVITY GENERATION RULES
+# ==========================================================
+
+generate:
+
+  create_routes: true
+  create_sidebar: true
+  create_permissions: true
+  create_crud: true
+  create_menu: true
+  create_breadcrumb: true
+  create_api_client: true
+  create_page_structure: true
+  create_module_folder: true

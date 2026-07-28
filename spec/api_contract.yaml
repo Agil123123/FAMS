@@ -1,0 +1,410 @@
+# ==========================================================
+# FAMS API CONTRACT
+# Version : 1.0
+# Target  : Antigravity AI
+# Style    : REST API
+# Base URL : /api/v1
+# ==========================================================
+
+api:
+
+  version: v1
+  protocol: HTTPS
+  format: JSON
+  authentication: JWT Bearer
+
+# ==========================================================
+# STANDARD RESPONSE
+# ==========================================================
+
+response:
+
+  success:
+    success: true
+    message: Success
+    data: {}
+
+  error:
+    success: false
+    message: Error
+    errors: []
+
+# ==========================================================
+# AUTH
+# ==========================================================
+
+auth:
+
+  - POST /auth/login
+  - POST /auth/logout
+  - POST /auth/refresh
+  - GET /auth/profile
+  - PATCH /auth/profile
+  - PATCH /auth/password
+
+# ==========================================================
+# USER
+# ==========================================================
+
+users:
+
+  - GET /users
+  - GET /users/{id}
+  - POST /users
+  - PATCH /users/{id}
+  - DELETE /users/{id}
+
+# ==========================================================
+# ROLE
+# ==========================================================
+
+roles:
+
+  - GET /roles
+  - POST /roles
+  - PATCH /roles/{id}
+  - DELETE /roles/{id}
+
+permissions:
+
+  - GET /permissions
+
+# ==========================================================
+# MASTER DATA
+# ==========================================================
+
+master:
+
+  - GET /areas
+  - GET /branches
+  - GET /vendors
+  - GET /asset-types
+  - GET /package-profiles
+
+# ==========================================================
+# ASSET
+# ==========================================================
+
+assets:
+
+  - GET /assets
+  - GET /assets/{id}
+  - POST /assets
+  - PATCH /assets/{id}
+  - DELETE /assets/{id}
+
+  subresources:
+
+    - GET /assets/{id}/photos
+    - GET /assets/{id}/documents
+    - GET /assets/{id}/history
+    - GET /assets/{id}/relations
+
+# ==========================================================
+# NETWORK
+# ==========================================================
+
+olts:
+
+  - GET /olts
+  - POST /olts
+  - PATCH /olts/{id}
+  - DELETE /olts/{id}
+
+pons:
+
+  - GET /pons
+  - GET /olts/{id}/pons
+
+odcs:
+
+  - GET /odcs
+  - POST /odcs
+  - PATCH /odcs/{id}
+  - DELETE /odcs/{id}
+
+odps:
+
+  - GET /odps
+  - GET /odps/{id}
+  - POST /odps
+  - PATCH /odps/{id}
+  - DELETE /odps/{id}
+
+  extra:
+
+    - GET /odps/{id}/ports
+    - GET /odps/{id}/capacity
+    - GET /odps/{id}/customers
+
+splitters:
+
+  - GET /splitters
+  - POST /splitters
+
+closures:
+
+  - GET /closures
+  - POST /closures
+
+joint_boxes:
+
+  - GET /joint-boxes
+  - POST /joint-boxes
+
+poles:
+
+  - GET /poles
+  - POST /poles
+
+# ==========================================================
+# FIBER
+# ==========================================================
+
+fiber:
+
+  cables:
+
+    - GET /fiber/cables
+    - POST /fiber/cables
+    - PATCH /fiber/cables/{id}
+    - DELETE /fiber/cables/{id}
+
+  cores:
+
+    - GET /fiber/cores
+    - PATCH /fiber/cores/{id}
+
+  splices:
+
+    - GET /fiber/splices
+    - POST /fiber/splices
+
+  trace:
+
+    - GET /fiber/trace/customer/{id}
+    - GET /fiber/trace/odp/{id}
+    - GET /fiber/trace/core/{id}
+
+  impact:
+
+    - POST /fiber/impact-analysis
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+gis:
+
+  - GET /gis/assets
+  - GET /gis/customers
+  - GET /gis/homepasses
+  - GET /gis/fibers
+
+  nearest:
+
+    - POST /gis/nearest-odp
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+homepass:
+
+  - GET /homepasses
+  - GET /homepasses/{id}
+  - POST /homepasses
+  - PATCH /homepasses/{id}
+  - DELETE /homepasses/{id}
+
+surveys:
+
+  - GET /surveys
+  - POST /surveys
+
+# ==========================================================
+# CUSTOMER
+# ==========================================================
+
+customers:
+
+  - GET /customers
+  - GET /customers/{id}
+  - POST /customers
+  - PATCH /customers/{id}
+  - DELETE /customers/{id}
+
+activation:
+
+  - POST /customers/{id}/activate
+
+suspend:
+
+  - POST /customers/{id}/suspend
+
+terminate:
+
+  - POST /customers/{id}/terminate
+
+relocate:
+
+  - POST /customers/{id}/relocate
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+workorders:
+
+  - GET /workorders
+  - GET /workorders/{id}
+  - POST /workorders
+  - PATCH /workorders/{id}
+  - DELETE /workorders/{id}
+
+workflow:
+
+  - POST /workorders/{id}/assign
+  - POST /workorders/{id}/start
+  - POST /workorders/{id}/complete
+  - POST /workorders/{id}/approve
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+monitoring:
+
+  - GET /monitoring/dashboard
+  - GET /monitoring/olt
+  - GET /monitoring/router
+  - GET /monitoring/onu
+  - GET /monitoring/alarm
+
+# ==========================================================
+# DASHBOARD
+# ==========================================================
+
+dashboard:
+
+  - GET /dashboard/kpi
+  - GET /dashboard/activity
+  - GET /dashboard/capacity
+  - GET /dashboard/alarm
+
+# ==========================================================
+# REPORT
+# ==========================================================
+
+reports:
+
+  - GET /reports/customer
+  - GET /reports/network
+  - GET /reports/workorder
+  - GET /reports/capacity
+
+# ==========================================================
+# QR
+# ==========================================================
+
+qr:
+
+  - POST /qr/generate
+  - GET /qr/{token}
+
+# ==========================================================
+# FILE
+# ==========================================================
+
+files:
+
+  - POST /upload/photo
+  - POST /upload/document
+  - DELETE /upload/{id}
+
+# ==========================================================
+# NOTIFICATION
+# ==========================================================
+
+notifications:
+
+  - GET /notifications
+  - PATCH /notifications/{id}/read
+
+# ==========================================================
+# AI
+# ==========================================================
+
+ai:
+
+  - POST /ai/chat
+  - POST /ai/nearest-odp
+  - POST /ai/fiber-trace
+  - POST /ai/capacity-analysis
+  - POST /ai/network-analysis
+  - POST /ai/recommendation
+
+# ==========================================================
+# SYSTEM
+# ==========================================================
+
+system:
+
+  - GET /system/health
+  - GET /system/version
+  - POST /system/backup
+  - POST /system/restore
+
+# ==========================================================
+# AUDIT
+# ==========================================================
+
+audit:
+
+  - GET /audit
+  - GET /audit/{id}
+
+# ==========================================================
+# PAGINATION
+# ==========================================================
+
+pagination:
+
+  page: integer
+  limit: integer
+  search: string
+  sort: string
+  order: asc|desc
+
+# ==========================================================
+# HTTP STATUS
+# ==========================================================
+
+status:
+
+  200: OK
+  201: Created
+  204: No Content
+  400: Bad Request
+  401: Unauthorized
+  403: Forbidden
+  404: Not Found
+  409: Conflict
+  422: Validation Error
+  500: Internal Server Error
+
+# ==========================================================
+# ANTIGRAVITY GENERATION
+# ==========================================================
+
+generate:
+
+  nestjs_controller: true
+  nestjs_service: true
+  nestjs_dto: true
+  prisma_repository: true
+  swagger_openapi: true
+  jwt_guard: true
+  role_guard: true
+  validation: true
+  audit_log: true

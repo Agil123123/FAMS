@@ -1,0 +1,276 @@
+# ==========================================================
+# FAMS DATABASE SCHEMA
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+database:
+  engine: PostgreSQL
+  version: "17"
+  extension:
+    - postgis
+    - pgcrypto
+    - uuid-ossp
+
+convention:
+  naming: snake_case
+  primary_key: uuid
+  soft_delete: true
+  audit_log: true
+  timestamps:
+    - created_at
+    - updated_at
+    - deleted_at
+
+# ==========================================================
+# MASTER TABLES
+# ==========================================================
+
+master_tables:
+
+  - users
+  - roles
+  - permissions
+  - role_permissions
+  - user_roles
+
+  - branches
+  - areas
+  - villages
+
+  - vendors
+  - asset_types
+  - cable_types
+  - splitter_types
+  - package_profiles
+
+# ==========================================================
+# NETWORK
+# ==========================================================
+
+network_tables:
+
+  - olts
+  - pon_ports
+  - odcs
+  - odps
+  - closures
+  - joint_boxes
+  - poles
+  - splitters
+
+# ==========================================================
+# FIBER
+# ==========================================================
+
+fiber_tables:
+
+  - fiber_cables
+  - fiber_cores
+  - fiber_splices
+  - fiber_routes
+  - fiber_trace_cache
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+gis_tables:
+
+  - map_layers
+  - map_markers
+  - map_polygons
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+homepass_tables:
+
+  - homepasses
+  - surveys
+
+# ==========================================================
+# CUSTOMER
+# ==========================================================
+
+customer_tables:
+
+  - customers
+  - customer_packages
+  - customer_onus
+  - customer_documents
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+workorder_tables:
+
+  - work_orders
+  - work_order_tasks
+  - work_order_photos
+  - work_order_histories
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+monitoring_tables:
+
+  - alarms
+  - device_status
+  - performance_metrics
+
+# ==========================================================
+# NOTIFICATION
+# ==========================================================
+
+notification_tables:
+
+  - notifications
+  - notification_logs
+
+# ==========================================================
+# SYSTEM
+# ==========================================================
+
+system_tables:
+
+  - audit_logs
+  - attachments
+  - qr_codes
+  - settings
+  - jobs
+
+# ==========================================================
+# MAIN RELATIONSHIP
+# ==========================================================
+
+relationships:
+
+  users:
+    roles: many_to_many
+
+  olt:
+    pon_ports: one_to_many
+
+  pon_ports:
+    odcs: one_to_many
+
+  odcs:
+    closures: one_to_many
+
+  closures:
+    odps: one_to_many
+
+  odps:
+    splitters: one_to_many
+
+  odps:
+    customers: one_to_many
+
+  fiber_cables:
+    fiber_cores: one_to_many
+
+  fiber_cores:
+    fiber_splices: one_to_many
+
+  customers:
+    customer_packages: one_to_one
+
+  customers:
+    customer_onus: one_to_one
+
+  work_orders:
+    work_order_tasks: one_to_many
+
+  work_orders:
+    work_order_photos: one_to_many
+
+# ==========================================================
+# REQUIRED COLUMNS
+# ==========================================================
+
+default_columns:
+
+  - id
+  - created_at
+  - updated_at
+  - deleted_at
+  - created_by
+  - updated_by
+
+# ==========================================================
+# UNIQUE INDEX
+# ==========================================================
+
+unique:
+
+  - asset_code
+  - customer_code
+  - serial_number
+  - qr_token
+  - username
+
+# ==========================================================
+# SPATIAL
+# ==========================================================
+
+postgis:
+
+  geometry_type: POINT
+
+  spatial_tables:
+
+    - olts
+    - odcs
+    - odps
+    - closures
+    - poles
+    - joint_boxes
+    - homepasses
+
+# ==========================================================
+# BUSINESS RULES
+# ==========================================================
+
+rules:
+
+  - AssetCodeUnique
+  - CustomerCodeUnique
+  - OneCustomerOneONU
+  - OnePortOneCustomer
+  - OneODPOnePON
+  - FiberCoreCannotDuplicate
+  - SoftDeleteOnly
+  - FullAuditLog
+
+# ==========================================================
+# DATABASE TARGET
+# ==========================================================
+
+capacity:
+
+  customers: 200000
+  homepasses: 500000
+  odps: 50000
+  olts: 500
+  fiber_cores: 1000000
+  work_orders: 5000000
+  audit_logs: 100000000
+
+# ==========================================================
+# ANTIGRAVITY RULES
+# ==========================================================
+
+generation:
+
+  generate_prisma_schema: true
+  generate_migrations: true
+  generate_seed: true
+  generate_indexes: true
+  generate_foreign_keys: true
+  generate_soft_delete: true
+  generate_audit_log: true
+  generate_postgis_support: true

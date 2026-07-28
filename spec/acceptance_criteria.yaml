@@ -1,0 +1,310 @@
+# ==========================================================
+# FAMS ACCEPTANCE CRITERIA
+# Version : 1.0
+# File    : 10_acceptance_criteria.yaml
+# Target  : Antigravity AI
+# ==========================================================
+
+acceptance_criteria:
+
+# ==========================================================
+# GLOBAL
+# ==========================================================
+
+  project:
+
+    definition_of_done:
+
+      - Build Success
+      - No Compile Error
+      - No Runtime Error
+      - No TODO
+      - No FIXME
+      - No Mock Data
+      - Production Ready
+      - All Tests Passed
+      - Swagger Generated
+      - Prisma Migration Valid
+      - Responsive
+      - Dark Mode
+      - RBAC Enabled
+      - Audit Log Enabled
+
+# ==========================================================
+# DATABASE
+# ==========================================================
+
+  database:
+
+    must_have:
+
+      - UUID Primary Key
+      - Foreign Key
+      - Index
+      - Soft Delete
+      - Audit Columns
+      - Prisma Schema
+      - Migration
+      - Seed
+
+    validation:
+
+      - Migration Success
+      - Seed Success
+      - Constraint Valid
+      - Relation Valid
+
+# ==========================================================
+# BACKEND
+# ==========================================================
+
+  backend:
+
+    every_module:
+
+      - Module
+      - Controller
+      - Service
+      - Repository
+      - DTO
+      - Validation
+      - Swagger
+      - Unit Test
+
+    quality:
+
+      - No Business Logic In Controller
+      - No Direct Database Access From Controller
+      - Transaction Safe
+      - Error Handling
+      - Logging
+      - RBAC
+
+# ==========================================================
+# FRONTEND
+# ==========================================================
+
+  frontend:
+
+    every_page:
+
+      - Responsive
+      - Dark Mode
+      - Loading State
+      - Empty State
+      - Error State
+      - Success Feedback
+      - Permission Guard
+      - Breadcrumb
+
+    every_form:
+
+      - Client Validation
+      - Server Validation
+      - Submit Loading
+      - Error Message
+
+    every_table:
+
+      - Search
+      - Filter
+      - Sort
+      - Pagination
+      - Export
+
+# ==========================================================
+# MOBILE
+# ==========================================================
+
+  mobile:
+
+    every_feature:
+
+      - Offline Ready
+      - Online Sync
+      - Error Handling
+      - GPS Validation
+      - Responsive
+      - Dark Mode
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+  gis:
+
+    required:
+
+      - Marker
+      - Polyline
+      - Polygon
+      - Layer
+      - Search
+      - Cluster
+      - Coordinate Display
+      - Popup
+
+# ==========================================================
+# FIBER TRACE
+# ==========================================================
+
+  fiber_trace:
+
+    required:
+
+      - OLT
+      - ODC
+      - Closure
+      - Splitter
+      - ODP
+      - Fiber Core
+      - Customer
+
+    validation:
+
+      - Complete Route
+      - Correct Order
+      - Export PDF
+
+# ==========================================================
+# NEAREST ODP
+# ==========================================================
+
+  nearest_odp:
+
+    required:
+
+      - PostGIS Query
+      - Distance Calculation
+      - Available Port Filter
+      - Top 5 Result
+
+    performance:
+
+      - "<500ms"
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+  workorder:
+
+    workflow:
+
+      - Open
+      - Assigned
+      - Accepted
+      - On Site
+      - In Progress
+      - Completed
+      - Approved
+      - Closed
+
+# ==========================================================
+# SECURITY
+# ==========================================================
+
+  security:
+
+    required:
+
+      - JWT
+      - Refresh Token
+      - RBAC
+      - Permission Guard
+      - Rate Limiter
+      - Input Validation
+      - SQL Injection Protection
+      - XSS Protection
+
+# ==========================================================
+# PERFORMANCE
+# ==========================================================
+
+  performance:
+
+    dashboard:
+
+      target: "<2s"
+
+    search:
+
+      target: "<1s"
+
+    fiber_trace:
+
+      target: "<3s"
+
+    nearest_odp:
+
+      target: "<500ms"
+
+# ==========================================================
+# TESTING
+# ==========================================================
+
+  testing:
+
+    minimum:
+
+      - Unit Test
+      - Integration Test
+      - E2E Test
+
+    coverage:
+
+      minimum: 90
+
+# ==========================================================
+# DOCUMENTATION
+# ==========================================================
+
+  documentation:
+
+    required:
+
+      - Swagger
+      - Prisma Schema
+      - Migration
+      - API Contract Updated
+
+# ==========================================================
+# AI VALIDATION
+# ==========================================================
+
+  ai_validation:
+
+    before_finish:
+
+      - Validate Specification
+      - Validate Folder Structure
+      - Validate Naming Convention
+      - Validate API
+      - Validate Database
+      - Validate Workflow
+      - Validate UI
+      - Validate Security
+      - Validate Tests
+
+# ==========================================================
+# FINAL CHECKLIST
+# ==========================================================
+
+final_checklist:
+
+  - Build Success
+  - Lint Success
+  - Test Success
+  - Migration Success
+  - Seed Success
+  - Swagger Success
+  - Docker Success
+  - No Critical Bug
+  - No Duplicate Code
+  - No Placeholder
+  - Production Ready
+
+completion_rule:
+
+  A module is considered COMPLETE only when every acceptance
+  criterion in this file has passed successfully.

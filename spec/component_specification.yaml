@@ -1,0 +1,375 @@
+# ==========================================================
+# FAMS COMPONENT SPECIFICATION
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+components:
+
+# ==========================================================
+# LAYOUT
+# ==========================================================
+
+  AppLayout:
+
+    type: Layout
+    reusable: true
+
+    children:
+      - Sidebar
+      - Header
+      - Breadcrumb
+      - Content
+
+# ==========================================================
+# HEADER
+# ==========================================================
+
+  Header:
+
+    props:
+      - title
+      - user
+      - notification_count
+
+    children:
+      - SearchBox
+      - NotificationButton
+      - AIButton
+      - UserMenu
+
+# ==========================================================
+# SIDEBAR
+# ==========================================================
+
+  Sidebar:
+
+    props:
+      - menus
+      - collapsed
+
+    features:
+      - Multi Level Menu
+      - Permission Based
+      - Active Route
+
+# ==========================================================
+# TABLE
+# ==========================================================
+
+  DataTable:
+
+    reusable: true
+
+    props:
+      - columns
+      - data
+      - pagination
+      - loading
+
+    features:
+      - Search
+      - Sort
+      - Filter
+      - Pagination
+      - Export
+      - Column Visibility
+
+# ==========================================================
+# SEARCH
+# ==========================================================
+
+  SearchBox:
+
+    props:
+      - placeholder
+      - debounce
+
+    events:
+      - onSearch
+
+# ==========================================================
+# FILTER
+# ==========================================================
+
+  FilterPanel:
+
+    props:
+      - filters
+
+    events:
+      - onApply
+      - onReset
+
+# ==========================================================
+# FORM
+# ==========================================================
+
+  FormBuilder:
+
+    props:
+      - schema
+      - defaultValues
+
+    features:
+      - Validation
+      - Submit
+      - Reset
+
+# ==========================================================
+# MODAL
+# ==========================================================
+
+  ConfirmDialog:
+
+    props:
+      - title
+      - description
+
+    actions:
+      - Confirm
+      - Cancel
+
+# ==========================================================
+# MAP
+# ==========================================================
+
+  GISMap:
+
+    provider: MapLibre
+
+    props:
+      - markers
+      - polylines
+      - polygons
+
+    features:
+      - Zoom
+      - Draw
+      - Cluster
+      - Measure
+      - Fullscreen
+
+# ==========================================================
+# ODP CARD
+# ==========================================================
+
+  ODPCard:
+
+    props:
+      - odp
+
+    display:
+      - Name
+      - Capacity
+      - Used Port
+      - Free Port
+      - Status
+
+    actions:
+      - Detail
+      - Fiber Trace
+      - QR
+
+# ==========================================================
+# CUSTOMER CARD
+# ==========================================================
+
+  CustomerCard:
+
+    props:
+      - customer
+
+    display:
+      - Name
+      - Customer Code
+      - Package
+      - ONU
+      - Status
+
+    actions:
+      - View
+      - Edit
+      - Suspend
+      - Terminate
+
+# ==========================================================
+# WORK ORDER CARD
+# ==========================================================
+
+  WorkOrderCard:
+
+    props:
+      - workorder
+
+    display:
+      - WO Number
+      - Status
+      - Technician
+      - SLA
+
+# ==========================================================
+# KPI CARD
+# ==========================================================
+
+  KpiCard:
+
+    props:
+      - title
+      - value
+      - trend
+      - icon
+
+# ==========================================================
+# CHART
+# ==========================================================
+
+  ChartCard:
+
+    library: Recharts
+
+    props:
+      - data
+      - type
+
+# ==========================================================
+# QR SCANNER
+# ==========================================================
+
+  QRScanner:
+
+    props:
+      - camera
+
+    events:
+      - onScan
+
+# ==========================================================
+# FILE UPLOAD
+# ==========================================================
+
+  FileUploader:
+
+    props:
+      - accept
+      - maxSize
+
+    features:
+      - Drag Drop
+      - Preview
+
+# ==========================================================
+# IMAGE VIEWER
+# ==========================================================
+
+  ImageViewer:
+
+    props:
+      - images
+
+    features:
+      - Zoom
+      - Rotate
+      - Download
+
+# ==========================================================
+# TIMELINE
+# ==========================================================
+
+  Timeline:
+
+    props:
+      - items
+
+# ==========================================================
+# STEPPER
+# ==========================================================
+
+  Stepper:
+
+    props:
+      - current
+      - steps
+
+# ==========================================================
+# BADGE
+# ==========================================================
+
+  StatusBadge:
+
+    values:
+      - Active
+      - Inactive
+      - Suspend
+      - Offline
+      - Online
+      - Maintenance
+
+# ==========================================================
+# NOTIFICATION
+# ==========================================================
+
+  Toast:
+
+    types:
+      - Success
+      - Error
+      - Warning
+      - Info
+
+# ==========================================================
+# AI CHAT
+# ==========================================================
+
+  AIChat:
+
+    props:
+      - messages
+
+    features:
+      - Markdown
+      - Code Highlight
+      - Copy
+      - Regenerate
+
+# ==========================================================
+# ANTIGRAVITY GENERATION
+# ==========================================================
+
+generate:
+
+  framework: Next.js 15
+
+  ui:
+    - shadcn/ui
+
+  styling:
+    - TailwindCSS
+
+  table:
+    - TanStack Table
+
+  form:
+    - React Hook Form
+    - Zod
+
+  chart:
+    - Recharts
+
+  map:
+    - MapLibre
+
+  icon:
+    - Lucide
+
+  state:
+    - Zustand
+
+  data_fetching:
+    - TanStack Query
+
+  responsive: true
+  dark_mode: true
+  typescript: true
+  reusable_components: true
+  accessibility: true

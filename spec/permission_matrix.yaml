@@ -1,0 +1,589 @@
+# ==========================================================
+# FAMS PERMISSION MATRIX
+# File    : 12_permission_matrix.yaml
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+permission_matrix:
+
+# ==========================================================
+# ROLE DEFINITIONS
+# ==========================================================
+
+roles:
+
+  - SUPER_ADMIN
+  - ADMINISTRATOR
+  - NOC
+  - SUPERVISOR
+  - ENGINEER
+  - TECHNICIAN
+  - HELPDESK
+  - MARKETING
+  - FINANCE
+  - VIEWER
+
+# ==========================================================
+# STANDARD PERMISSIONS
+# ==========================================================
+
+permissions:
+
+  standard:
+
+    - view
+    - create
+    - update
+    - delete
+    - export
+    - import
+    - approve
+    - assign
+    - execute
+    - configuration
+
+# ==========================================================
+# AUTH MODULE
+# ==========================================================
+
+auth:
+
+  login:
+    allowed:
+      - SUPER_ADMIN
+      - ADMINISTRATOR
+      - NOC
+      - SUPERVISOR
+      - ENGINEER
+      - TECHNICIAN
+      - HELPDESK
+      - MARKETING
+      - FINANCE
+      - VIEWER
+
+  logout:
+    allowed: ALL
+
+  refresh_token:
+    allowed: ALL
+
+# ==========================================================
+# USER MANAGEMENT
+# ==========================================================
+
+users:
+
+  view:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+  create:
+    - SUPER_ADMIN
+
+  update:
+    - SUPER_ADMIN
+
+  delete:
+    - SUPER_ADMIN
+
+  reset_password:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+# ==========================================================
+# ROLE MANAGEMENT
+# ==========================================================
+
+roles_management:
+
+  view:
+    - SUPER_ADMIN
+
+  create:
+    - SUPER_ADMIN
+
+  update:
+    - SUPER_ADMIN
+
+  delete:
+    - SUPER_ADMIN
+
+# ==========================================================
+# DASHBOARD
+# ==========================================================
+
+dashboard:
+
+  view:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - NOC
+    - SUPERVISOR
+    - ENGINEER
+    - TECHNICIAN
+    - HELPDESK
+    - MARKETING
+    - FINANCE
+    - VIEWER
+
+# ==========================================================
+# ASSET
+# ==========================================================
+
+asset:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - ENGINEER
+
+  update:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - ENGINEER
+
+  delete:
+    - SUPER_ADMIN
+
+  export:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+# ==========================================================
+# OLT
+# ==========================================================
+
+olt:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  update:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  delete:
+    - SUPER_ADMIN
+
+# ==========================================================
+# ODC
+# ==========================================================
+
+odc:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  update:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  delete:
+    - SUPER_ADMIN
+
+# ==========================================================
+# ODP
+# ==========================================================
+
+odp:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ENGINEER
+    - TECHNICIAN
+
+  update:
+    - SUPER_ADMIN
+    - ENGINEER
+    - TECHNICIAN
+
+  delete:
+    - SUPER_ADMIN
+
+# ==========================================================
+# SPLITTER
+# ==========================================================
+
+splitter:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  update:
+    - SUPER_ADMIN
+    - ENGINEER
+
+# ==========================================================
+# FIBER
+# ==========================================================
+
+fiber:
+
+  view:
+    - ALL
+
+  create:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  update:
+    - SUPER_ADMIN
+    - ENGINEER
+    - TECHNICIAN
+
+  splice:
+    - SUPER_ADMIN
+    - ENGINEER
+    - TECHNICIAN
+
+  trace:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - NOC
+    - ENGINEER
+    - TECHNICIAN
+
+# ==========================================================
+# GIS
+# ==========================================================
+
+gis:
+
+  view:
+    - ALL
+
+  edit_map:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  edit_geometry:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  import_kml:
+    - SUPER_ADMIN
+    - ENGINEER
+
+  export_map:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - ENGINEER
+
+# ==========================================================
+# HOMEPASS
+# ==========================================================
+
+homepass:
+
+  view:
+    - ALL
+
+  survey:
+    - TECHNICIAN
+    - ENGINEER
+
+  create:
+    - TECHNICIAN
+    - ENGINEER
+
+  update:
+    - TECHNICIAN
+    - ENGINEER
+
+  approve:
+    - SUPERVISOR
+    - ADMINISTRATOR
+
+# ==========================================================
+# CUSTOMER
+# ==========================================================
+
+customer:
+
+  view:
+    - ALL
+
+  create:
+    - HELPDESK
+    - MARKETING
+
+  update:
+    - HELPDESK
+
+  activate:
+    - HELPDESK
+
+  suspend:
+    - HELPDESK
+
+  terminate:
+    - SUPERVISOR
+    - ADMINISTRATOR
+
+  relocate:
+    - SUPERVISOR
+
+  export:
+    - ADMINISTRATOR
+    - FINANCE
+
+# ==========================================================
+# WORK ORDER
+# ==========================================================
+
+workorder:
+
+  view:
+    - ALL
+
+  create:
+    - HELPDESK
+    - NOC
+
+  assign:
+    - SUPERVISOR
+    - NOC
+
+  accept:
+    - TECHNICIAN
+
+  execute:
+    - TECHNICIAN
+
+  approve:
+    - SUPERVISOR
+
+  close:
+    - SUPERVISOR
+
+# ==========================================================
+# MONITORING
+# ==========================================================
+
+monitoring:
+
+  view:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - NOC
+    - ENGINEER
+
+  acknowledge_alarm:
+    - NOC
+
+  clear_alarm:
+    - NOC
+    - ADMINISTRATOR
+
+# ==========================================================
+# REPORT
+# ==========================================================
+
+report:
+
+  view:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - FINANCE
+    - SUPERVISOR
+
+  export_pdf:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+  export_excel:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - FINANCE
+
+# ==========================================================
+# NOTIFICATION
+# ==========================================================
+
+notification:
+
+  view:
+    - ALL
+
+  send_manual:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+# ==========================================================
+# AI ASSISTANT
+# ==========================================================
+
+ai:
+
+  chat:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - NOC
+    - ENGINEER
+
+  recommendation:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - ENGINEER
+
+  analysis:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+    - NOC
+
+# ==========================================================
+# SYSTEM
+# ==========================================================
+
+system:
+
+  settings:
+    - SUPER_ADMIN
+
+  backup:
+    - SUPER_ADMIN
+
+  restore:
+    - SUPER_ADMIN
+
+  audit_log:
+    - SUPER_ADMIN
+
+  health_check:
+    - SUPER_ADMIN
+    - ADMINISTRATOR
+
+# ==========================================================
+# MENU VISIBILITY
+# ==========================================================
+
+menu:
+
+  dashboard:
+    visible: ALL
+
+  asset:
+    visible:
+      - SUPER_ADMIN
+      - ADMINISTRATOR
+      - ENGINEER
+      - TECHNICIAN
+
+  gis:
+    visible:
+      - ALL
+
+  customer:
+    visible:
+      - ALL
+
+  workorder:
+    visible:
+      - NOC
+      - SUPERVISOR
+      - TECHNICIAN
+      - HELPDESK
+
+  monitoring:
+    visible:
+      - SUPER_ADMIN
+      - ADMINISTRATOR
+      - NOC
+
+  reports:
+    visible:
+      - SUPER_ADMIN
+      - ADMINISTRATOR
+      - FINANCE
+
+  ai:
+    visible:
+      - SUPER_ADMIN
+      - ADMINISTRATOR
+      - ENGINEER
+
+  system:
+    visible:
+      - SUPER_ADMIN
+
+# ==========================================================
+# DEFAULT ROLE
+# ==========================================================
+
+default_role:
+
+  newly_created_user: VIEWER
+
+# ==========================================================
+# RBAC RULES
+# ==========================================================
+
+rbac:
+
+  strategy: Role Based Access Control
+
+  permission_check:
+    backend: mandatory
+    frontend: mandatory
+    mobile: mandatory
+
+  hide_menu_without_permission: true
+
+  hide_api_without_permission: true
+
+  return_http_code: 403
+
+# ==========================================================
+# ANTIGRAVITY RULES
+# ==========================================================
+
+generate:
+
+  backend:
+
+    permission_guard: true
+
+    role_guard: true
+
+    decorator:
+      - "@Roles()"
+      - "@Permissions()"
+
+  frontend:
+
+    route_guard: true
+
+    menu_filter: true
+
+    component_guard: true
+
+  mobile:
+
+    screen_guard: true
+
+    menu_guard: true
+
+  never_hardcode_permission: true
+
+  permission_source: permission_matrix.yaml
+
+  production_ready: true

@@ -1,0 +1,157 @@
+# ==========================================================
+# FAMS CODING STANDARDS
+# Version : 1.0
+# Target  : Antigravity AI
+# ==========================================================
+
+language:
+
+  code: English
+
+  ui: Indonesian
+
+naming:
+
+  database:
+    style: snake_case
+
+  table:
+    style: snake_case
+
+  column:
+    style: snake_case
+
+  api:
+    style: kebab-case
+
+  folder:
+    style: kebab-case
+
+  component:
+    style: PascalCase
+
+  interface:
+    prefix: I
+
+  dto:
+    suffix: Dto
+
+  entity:
+    suffix: Entity
+
+  repository:
+    suffix: Repository
+
+  service:
+    suffix: Service
+
+  controller:
+    suffix: Controller
+
+  module:
+    suffix: Module
+
+typescript:
+
+  strict: true
+
+  no_any: true
+
+  no_unused: true
+
+frontend:
+
+  component_max_lines: 250
+
+  page_max_lines: 300
+
+  custom_hooks: required
+
+  reusable_component: required
+
+backend:
+
+  controller:
+    business_logic: forbidden
+
+  repository:
+    business_logic: forbidden
+
+  service:
+    business_logic: required
+
+database:
+
+  uuid: required
+
+  soft_delete: required
+
+  audit_log: required
+
+git:
+
+  branch:
+
+    - main
+    - develop
+    - feature/*
+    - hotfix/*
+    - bugfix/*
+
+commit:
+
+  format:
+
+    - feat
+    - fix
+    - refactor
+    - docs
+    - test
+    - chore
+
+testing:
+
+  unit_test: required
+
+  integration_test: required
+
+  e2e_test: required
+
+security:
+
+  jwt: required
+
+  rbac: required
+
+  validation: required
+
+  rate_limit: required
+
+documentation:
+
+  swagger: required
+
+  prisma_schema: required
+
+code_quality:
+
+  clean_architecture: true
+
+  solid: true
+
+  dry: true
+
+  kiss: true
+
+  feature_first: true
+
+  production_ready: true
+
+forbidden:
+
+  - TODO
+  - FIXME
+  - mock implementation
+  - hardcoded secret
+  - console.log
+  - duplicated code
