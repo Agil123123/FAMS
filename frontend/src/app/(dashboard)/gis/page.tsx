@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Map, Source, Layer, NavigationControl, ScaleControl, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibregl from 'maplibre-gl';
 import { Layers, MapPin, Ruler, Crosshair, Cable, Network, Home, Box, Search, Satellite, Moon } from 'lucide-react';
 import { useGisSync } from '@/hooks/use-gis-sync';
 import { ContextMenu } from '@/components/gis/context-menu';
@@ -42,6 +43,15 @@ const ASSET_COLORS: Record<string, string> = {
 };
 
 export default function GisPage() {
+  // Fix maplibre-gl web worker in Next.js - set before Map renders
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      maplibregl.setWorkerUrl(
+        'https://unpkg.com/maplibre-gl@5.3.1/dist/maplibre-gl-worker.js'
+      );
+    }
+  }, []);
+
   const mapRef = useRef<MapRef>(null);
   const { assets, customers, isLoading, startDrag, endDrag, startEdit, endEdit, refetch } = useGisSync();
 
