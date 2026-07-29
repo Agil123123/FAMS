@@ -4,32 +4,12 @@ import React, { useState, useRef } from 'react';
 import { useTraceFromCustomer } from '@/hooks/use-fiber-trace';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Map, Source, Layer, NavigationControl } from 'react-map-gl/maplibre';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { Download, Search, Loader2 } from 'lucide-react';
-
-// Stub map style for offline/sandbox mode if needed
-const mapStyle = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap Contributors',
-      maxzoom: 19
-    }
-  },
-  layers: [
-    {
-      id: 'osm',
-      type: 'raster',
-      source: 'osm'
-    }
-  ]
-} as any;
 
 export default function FiberTracePage() {
   const [customerId, setCustomerId] = useState<string>('');
@@ -63,7 +43,7 @@ export default function FiberTracePage() {
     features: traceData?.nodes
       .filter((n) => n.geometry)
       .map((node) => ({
-        type: 'Feature',
+        type: 'Feature' as const,
         geometry: node.geometry,
         properties: {
           id: node.id,
@@ -72,6 +52,11 @@ export default function FiberTracePage() {
         }
       })) || []
   };
+
+  const initialCenter: [number, number] = [
+    (geojsonFeatures.features[0]?.geometry as any)?.coordinates?.[1] || -6.1751,
+    (geojsonFeatures.features[0]?.geometry as any)?.coordinates?.[0] || 106.8272,
+  ];
 
   return (
     <div className="flex flex-col h-screen space-y-4 p-4">
@@ -112,7 +97,6 @@ export default function FiberTracePage() {
               <ul className="space-y-4 relative">
                 {traceData?.nodes.map((node, i) => (
                   <li key={node.id} className="relative pl-6">
-                    {/* Visual connecting line */}
                     {i < traceData.nodes.length - 1 && (
                       <div className="absolute left-[7px] top-4 bottom-[-16px] w-[2px] bg-blue-500/30" />
                     )}
@@ -130,29 +114,25 @@ export default function FiberTracePage() {
         
         <div className="col-span-3 rounded-lg overflow-hidden border bg-muted relative" ref={mapRef}>
           {traceData ? (
-            <Map
-              initialViewState={{
-                longitude: (geojsonFeatures.features[0]?.geometry as any)?.coordinates?.[0] || 0,
-                latitude: (geojsonFeatures.features[0]?.geometry as any)?.coordinates?.[1] || 0,
-                zoom: 14
-              }}
-              mapStyle={mapStyle}
+            <MapContainer
+              center={initialCenter}
+              zoom={14}
               style={{ width: '100%', height: '100%' }}
+              zoomControl={true}
             >
-              <NavigationControl position="top-left" />
-              <Source id="trace-source" type="geojson" data={geojsonFeatures}>
-                <Layer
-                  id="trace-points"
-                  type="circle"
-                  paint={{
-                    'circle-radius': 8,
-                    'circle-color': '#3b82f6',
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#ffffff'
-                  }}
-                />
-              </Source>
-            </Map>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap Contributors"
+              />
+              <GeoJSON
+                data={geojsonFeatures}
+                pointToLayer={(feature, latlng) =>
+                  L.circleMarker(latlng, {
+                    radius: 8, fillColor: '#3b82f6', color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 0.85,
+                  })
+                }
+              />
+            </MapContainer>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               Map Visualization Ready

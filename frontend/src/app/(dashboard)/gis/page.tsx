@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Map, Source, Layer, NavigationControl, ScaleControl, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Layers, MapPin, Ruler, Crosshair, Cable, Network, Home, Box, Search, Satellite, Moon } from 'lucide-react';
 import { useGisSync } from '@/hooks/use-gis-sync';
 import { ContextMenu } from '@/components/gis/context-menu';
@@ -17,24 +17,20 @@ import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/to
 import * as turf from '@turf/turf';
 import api from '@/lib/api';
 
-const JAKARTA: [number, number] = [106.8272, -6.1751];
+// Fix default marker icon in Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
-const TILE_STYLES = {
-  osm: {
-    version: 8 as const,
-    sources: { osm: { type: 'raster' as const, tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OSM', maxzoom: 19 } },
-    layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
-  },
-  satellite: {
-    version: 8 as const,
-    sources: { esri: { type: 'raster' as const, tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: 'Esri', maxzoom: 19 } },
-    layers: [{ id: 'satellite', type: 'raster' as const, source: 'esri' }],
-  },
-  dark: {
-    version: 8 as const,
-    sources: { carto: { type: 'raster' as const, tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'], tileSize: 256, attribution: 'CartoDB', maxzoom: 19 } },
-    layers: [{ id: 'dark', type: 'raster' as const, source: 'carto' }],
-  },
+const JAKARTA: [number, number] = [-6.1751, 106.8272]; // Leaflet: [lat, lng]
+
+const TILE_LAYERS = {
+  osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; OSM' },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Esri' },
+  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: 'CartoDB' },
 };
 
 const ASSET_COLORS: Record<string, string> = {
@@ -42,28 +38,77 @@ const ASSET_COLORS: Record<string, string> = {
   Closure: '#06b6d4', Splitter: '#ec4899', Cable: '#6366f1',
 };
 
-export default function GisPage() {
-  // Fix maplibre-gl web worker in Next.js - set before Map renders
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      maplibregl.setWorkerUrl(
-        'https://unpkg.com/maplibre-gl@5.3.1/dist/maplibre-gl-worker.js'
-      );
-    }
-  }, []);
+// ---- Inner map components (need useMap / useMapEvents) ----
 
-  const mapRef = useRef<MapRef>(null);
+function MapEvents({ onMapClick, onMapRightClick, onMapMouseMove }: {
+  onMapClick: (e: L.LeafletMouseEvent) => void;
+  onMapRightClick: (e: L.LeafletMouseEvent) => void;
+  onMapMouseMove: (e: L.LeafletMouseEvent) => void;
+}) {
+  useMapEvents({
+    click: onMapClick,
+    contextmenu: onMapRightClick,
+    mousemove: onMapMouseMove,
+  });
+  return null;
+}
+
+function MapController({ flyTo }: { flyTo: { center: [number, number]; zoom: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (flyTo) {
+      map.flyTo(flyTo.center, flyTo.zoom, { duration: 1.5 });
+    }
+  }, [flyTo, map]);
+  return null;
+}
+
+function TileController({ tileStyle }: { tileStyle: string }) {
+  return (
+    <TileLayer
+      key={tileStyle}
+      url={TILE_LAYERS[tileStyle as keyof typeof TILE_LAYERS]?.url || TILE_LAYERS.osm.url}
+      attribution={TILE_LAYERS[tileStyle as keyof typeof TILE_LAYERS]?.attr || TILE_LAYERS.osm.attr}
+    />
+  );
+}
+
+// ---- Asset marker style ----
+
+function assetPointToLayer(feature: any, latlng: L.LatLng) {
+  const type = feature.properties?.asset_type || 'Other';
+  const color = ASSET_COLORS[type] || '#11b4da';
+  return L.circleMarker(latlng, {
+    radius: 8,
+    fillColor: color,
+    color: '#fff',
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 0.85,
+  });
+}
+
+function customerPointToLayer(feature: any, latlng: L.LatLng) {
+  return L.circleMarker(latlng, {
+    radius: 6,
+    fillColor: '#ef4444',
+    color: '#fff',
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.85,
+  });
+}
+
+// ---- Main Page ----
+
+export default function GisPage() {
   const { assets, customers, isLoading, startDrag, endDrag, startEdit, endEdit, refetch } = useGisSync();
 
-  // Tile switcher
   const [tileStyle, setTileStyle] = useState<'osm' | 'satellite' | 'dark'>('osm');
-  const mapStyle = TILE_STYLES[tileStyle];
-
-  // Map state
   const [cursorCoords, setCursorCoords] = useState<{lng: number; lat: number} | null>(null);
   const [contextMenu, setContextMenu] = useState<{x: number; y: number; lng: number; lat: number} | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [popupInfo, setPopupInfo] = useState<any>(null);
+  const [flyTo, setFlyTo] = useState<{center: [number, number]; zoom: number} | null>(null);
 
   // Dialogs
   const [createType, setCreateType] = useState<string | null>(null);
@@ -76,9 +121,6 @@ export default function GisPage() {
   // Layers
   const [showAssets, setShowAssets] = useState(true);
   const [showCustomers, setShowCustomers] = useState(true);
-  const [showPoles, setShowPoles] = useState(true);
-  const [showClosures, setShowClosures] = useState(true);
-  const [showSplitters, setShowSplitters] = useState(true);
   const [showCables, setShowCables] = useState(true);
 
   // Measurement
@@ -86,7 +128,7 @@ export default function GisPage() {
   const [measurePoints, setMeasurePoints] = useState<number[][]>([]);
   const [traceGeoJSON, setTraceGeoJSON] = useState<any>(null);
 
-  // Topology index — built on data change, used for cable rendering + trace
+  // Topology
   const topologyIndex = useMemo<TopologyIndex | null>(() => {
     const assetList = assets?.features?.map((f: any) => ({
       id: f.properties?.id || f.properties?.asset_code,
@@ -107,14 +149,12 @@ export default function GisPage() {
     return buildTopologyIndex(assetList, customerList);
   }, [assets, customers]);
 
-  // Cable GeoJSON derived from topology
+  // Cable GeoJSON from topology
   const cableGeoJSON = useMemo(() => {
     if (!topologyIndex || !showCables) return null;
     const allPaths: number[][][] = [];
-    const allNodes = { ...topologyIndex.nodeMap };
-    Object.keys(allNodes).forEach((key) => {
-      const cables = getDownstreamCables(topologyIndex, key);
-      allPaths.push(...cables);
+    Object.keys(topologyIndex.nodeMap).forEach((key) => {
+      allPaths.push(...getDownstreamCables(topologyIndex, key));
     });
     if (allPaths.length === 0) return null;
     return {
@@ -127,13 +167,13 @@ export default function GisPage() {
     };
   }, [topologyIndex, showCables]);
 
-  // Quick search handler
+  // Quick search
   const handleSearchSelect = useCallback((item: { lng: number; lat: number; id: string }) => {
-    mapRef.current?.flyTo({ center: [item.lng, item.lat], zoom: 18, duration: 1500 });
+    setFlyTo({ center: [item.lat, item.lng], zoom: 18 });
     setPopupInfo(item);
   }, []);
 
-  // Context menu actions
+  // Context menu
   const handleContextAction = useCallback((action: string, coords: {lng: number; lat: number}) => {
     startEdit();
     switch (action) {
@@ -153,25 +193,46 @@ export default function GisPage() {
     refetch();
   }, [endEdit, refetch]);
 
-  // Map click
-  const onMapClick = useCallback((e: any) => {
+  // Map event handlers
+  const onMapClick = useCallback((e: L.LeafletMouseEvent) => {
     if (isMeasuring) {
-      setMeasurePoints(prev => [...prev, [e.lngLat.lng, e.lngLat.lat]]);
+      setMeasurePoints(prev => [...prev, [e.latlng.lng, e.latlng.lat]]);
     }
     setContextMenu(null);
   }, [isMeasuring]);
 
-  const onMapRightClick = useCallback((e: any) => {
-    e.originalEvent.preventDefault();
-    const rect = (e.target as HTMLElement)?.closest('.maplibregl-canvas-container')?.getBoundingClientRect();
-    if (rect) {
-      setContextMenu({ x: e.originalEvent.clientX - rect.left, y: e.originalEvent.clientY - rect.top, lng: e.lngLat.lng, lat: e.lngLat.lat });
+  const onMapRightClick = useCallback((e: L.LeafletMouseEvent) => {
+    const container = e.originalEvent.target as HTMLElement;
+    const mapEl = container?.closest('.leaflet-container');
+    if (mapEl) {
+      const rect = mapEl.getBoundingClientRect();
+      setContextMenu({
+        x: e.originalEvent.clientX - rect.left,
+        y: e.originalEvent.clientY - rect.top,
+        lng: e.latlng.lng,
+        lat: e.latlng.lat,
+      });
     }
     setPopupInfo(null);
   }, []);
 
-  const onMapMouseMove = useCallback((e: any) => {
-    setCursorCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+  const onMapMouseMove = useCallback((e: L.LeafletMouseEvent) => {
+    setCursorCoords({ lng: e.latlng.lng, lat: e.latlng.lat });
+  }, []);
+
+  // GeoJSON event handlers
+  const onEachAsset = useCallback((feature: any, layer: L.Layer) => {
+    const props = feature.properties;
+    layer.on('click', () => {
+      setPopupInfo({ ...props, lng: feature.geometry.coordinates[0], lat: feature.geometry.coordinates[1] });
+    });
+  }, []);
+
+  const onEachCustomer = useCallback((feature: any, layer: L.Layer) => {
+    const props = feature.properties;
+    layer.on('click', () => {
+      setPopupInfo({ ...props, type: 'Customer', lng: feature.geometry.coordinates[0], lat: feature.geometry.coordinates[1] });
+    });
   }, []);
 
   const measureGeoJSON = useMemo(() => {
@@ -184,7 +245,22 @@ export default function GisPage() {
     return turf.length(turf.lineString(measurePoints), { units: 'meters' });
   }, [measurePoints]);
 
-  // Keyboard shortcuts
+  // Cable style
+  const cableStyle = useCallback(() => ({
+    color: '#6366f1', weight: 2, opacity: 0.6, dashArray: '4 2',
+  }), []);
+
+  // Measure style
+  const measureStyle = useCallback(() => ({
+    color: '#f97316', weight: 4, dashArray: '2 2',
+  }), []);
+
+  // Trace style
+  const traceStyle = useCallback(() => ({
+    color: '#f97316', weight: 6, opacity: 0.8,
+  }), []);
+
+  // Keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'm' || e.key === 'M') { setIsMeasuring(prev => !prev); setMeasurePoints([]); }
@@ -220,16 +296,13 @@ export default function GisPage() {
           <QuickSearch onSelect={handleSearchSelect} />
         </div>
 
-        {/* Layer Toggles */}
+        {/* Layers */}
         <div className="p-4 space-y-1 overflow-y-auto flex-1">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Layers</h3>
           {[
             { key: 'showAssets', label: 'Network Assets', icon: Network, color: '#22c55e', state: showAssets, set: setShowAssets },
             { key: 'showCustomers', label: 'Customers', icon: Home, color: '#ef4444', state: showCustomers, set: setShowCustomers },
             { key: 'showCables', label: 'Fiber Cables', icon: Cable, color: '#6366f1', state: showCables, set: setShowCables },
-            { key: 'showPoles', label: 'Poles', icon: MapPin, color: '#a855f7', state: showPoles, set: setShowPoles },
-            { key: 'showClosures', label: 'Closures', icon: Box, color: '#06b6d4', state: showClosures, set: setShowClosures },
-            { key: 'showSplitters', label: 'Splitters', icon: Layers, color: '#ec4899', state: showSplitters, set: setShowSplitters },
           ].map(layer => (
             <label key={layer.key} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm">
               <input type="checkbox" checked={layer.state} onChange={e => layer.set(e.target.checked)} className="rounded" />
@@ -293,73 +366,55 @@ export default function GisPage() {
         </div>
       </div>
 
-      {/* MAP CANVAS */}
+      {/* MAP */}
       <div className="flex-1 relative" onContextMenu={e => e.preventDefault()}>
-        <Map
-          ref={mapRef}
-          initialViewState={{ longitude: JAKARTA[0], latitude: JAKARTA[1], zoom: 13 }}
-          mapStyle={mapStyle}
+        <MapContainer
+          center={JAKARTA}
+          zoom={13}
           style={{ width: '100%', height: '100%' }}
-          onClick={onMapClick}
-          onContextMenu={onMapRightClick as any}
-          onMouseMove={onMapMouseMove}
+          zoomControl={false}
+          attributionControl={true}
         >
-          <NavigationControl position="top-right" />
-          <ScaleControl position="bottom-right" />
+          <TileController tileStyle={tileStyle} />
+          <MapController flyTo={flyTo} />
+          <MapEvents onMapClick={onMapClick} onMapRightClick={onMapRightClick} onMapMouseMove={onMapMouseMove} />
 
-          {/* Assets Layer */}
+          {/* Assets */}
           {showAssets && assets && (
-            <Source id="assets-source" type="geojson" data={assets} cluster={true} clusterMaxZoom={14} clusterRadius={50}>
-              <Layer id="clusters" type="circle" filter={['has', 'point_count']}
-                paint={{ 'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 10, '#f1f075', 50, '#f28cb1'], 'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40] }} />
-              <Layer id="cluster-count" type="symbol" filter={['has', 'point_count']}
-                layout={{ 'text-field': '{point_count_abbreviated}', 'text-font': ['Open Sans Regular'], 'text-size': 12 }} />
-              <Layer id="unclustered-assets" type="circle" filter={['!', ['has', 'point_count']]}
-                paint={{ 'circle-color': '#11b4da', 'circle-radius': 8, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' }} />
-            </Source>
+            <GeoJSON key="assets" data={assets} pointToLayer={assetPointToLayer} onEachFeature={onEachAsset} />
           )}
 
-          {/* Customers Layer */}
+          {/* Customers */}
           {showCustomers && customers && (
-            <Source id="customers-source" type="geojson" data={customers}>
-              <Layer id="customers-layer" type="circle"
-                paint={{ 'circle-color': '#ef4444', 'circle-radius': 6, 'circle-stroke-width': 1, 'circle-stroke-color': '#fff' }} />
-            </Source>
+            <GeoJSON key="customers" data={customers} pointToLayer={customerPointToLayer} onEachFeature={onEachCustomer} />
           )}
 
-          {/* Cable Layer (from topology) */}
+          {/* Cables */}
           {cableGeoJSON && (
-            <Source id="cables-source" type="geojson" data={cableGeoJSON}>
-              <Layer id="cables-layer" type="line"
-                paint={{ 'line-color': '#6366f1', 'line-width': 2, 'line-opacity': 0.6, 'line-dasharray': [4, 2] }} />
-            </Source>
+            <GeoJSON key="cables" data={cableGeoJSON} style={cableStyle} />
           )}
 
-          {/* Measurement Layer */}
+          {/* Measurement */}
           {isMeasuring && measureGeoJSON && (
-            <Source id="measure-source" type="geojson" data={measureGeoJSON}>
-              <Layer id="measure-lines" type="line"
-                paint={{ 'line-color': '#f97316', 'line-width': 4, 'line-dasharray': [2, 2] }} />
-            </Source>
+            <GeoJSON key="measure" data={measureGeoJSON} style={measureStyle} />
           )}
 
-          {/* Trace highlight */}
+          {/* Trace */}
           {traceGeoJSON && (
-            <Source id="trace-source" type="geojson" data={traceGeoJSON}>
-              <Layer id="trace-line" type="line"
-                paint={{ 'line-color': '#f97316', 'line-width': 6, 'line-opacity': 0.8 }} />
-            </Source>
+            <GeoJSON key="trace" data={traceGeoJSON} style={traceStyle} />
           )}
 
-          {/* Popup */}
+          {/* Popup - render outside GeoJSON via Marker */}
           {popupInfo && (
-            <Popup longitude={popupInfo.lng || popupInfo.longitude} latitude={popupInfo.lat || popupInfo.latitude}
-              anchor="bottom" onClose={() => setPopupInfo(null)} closeButton={true} closeOnClick={false}>
+            <Popup
+              position={[popupInfo.lat || popupInfo.latitude, popupInfo.lng || popupInfo.longitude]}
+              eventHandlers={{ remove: () => setPopupInfo(null) }}
+            >
               <div className="p-1 min-w-[180px]">
                 <h4 className="font-semibold text-sm">{popupInfo.name || popupInfo.id}</h4>
                 <p className="text-xs text-muted-foreground">{popupInfo.type || popupInfo.asset_type}</p>
                 <div className="flex gap-1 mt-2">
-                  <button onClick={() => setShowTrace({ id: popupInfo.id, type: popupInfo.type?.toLowerCase()?.includes('customer') ? 'customer' : 'odp', name: popupInfo.name })}
+                  <button onClick={() => setShowTrace({ id: popupInfo.id, type: (popupInfo.type || '').toLowerCase()?.includes('customer') ? 'customer' : 'odp', name: popupInfo.name })}
                     className="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20">Trace</button>
                   <button onClick={() => setContextMenu({ x: popupInfo.lng, y: popupInfo.lat, lng: popupInfo.lng || popupInfo.longitude, lat: popupInfo.lat || popupInfo.latitude })}
                     className="text-xs px-2 py-1 bg-muted rounded hover:bg-muted/50">Actions</button>
@@ -367,7 +422,7 @@ export default function GisPage() {
               </div>
             </Popup>
           )}
-        </Map>
+        </MapContainer>
 
         {/* Context Menu */}
         {contextMenu && (
@@ -378,15 +433,15 @@ export default function GisPage() {
           />
         )}
 
-        {/* Coordinate Display */}
-        <div className="absolute bottom-6 left-6 z-10 pointer-events-none">
+        {/* Coords */}
+        <div className="absolute bottom-6 left-6 z-[1000] pointer-events-none">
           <div className="flex items-center gap-2 px-3 py-2 bg-background/90 backdrop-blur border border-border rounded-lg text-xs font-mono">
             <Crosshair className="w-3 h-3 text-muted-foreground" />
             {cursorCoords ? `${cursorCoords.lat.toFixed(5)}, ${cursorCoords.lng.toFixed(5)}` : 'Hover map for coords'}
           </div>
         </div>
 
-        {/* Fiber Trace Panel */}
+        {/* Trace Panel */}
         {showTrace && (
           <FiberTracePanel
             assetId={showTrace.id} assetType={showTrace.type} assetName={showTrace.name}
@@ -398,13 +453,8 @@ export default function GisPage() {
       </div>
 
       {/* DIALOGS */}
-      <CreateDialog
-        open={!!createType}
-        type={createType as any}
-        coordinates={createCoords}
-        onClose={handleCreateClose}
-        onCreated={handleCreateClose}
-      />
+      <CreateDialog open={!!createType} type={createType as any} coordinates={createCoords}
+        onClose={handleCreateClose} onCreated={handleCreateClose} />
       <CreateCableDialog open={showCableDialog} onClose={() => { setShowCableDialog(false); endEdit(); }} />
       <SplitterDialog open={showSplitterDialog} onClose={() => { setShowSplitterDialog(false); endEdit(); }} />
       <ConnectCustomerDialog open={showConnectDialog} onClose={() => { setShowConnectDialog(false); endEdit(); }} />
