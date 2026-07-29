@@ -53,8 +53,11 @@ export class GisService {
     const features: any[] = [];
     
     const customers = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, full_name as name, customer_code as asset_code, ST_AsGeoJSON(geom) as geometry 
-      FROM customers WHERE deleted_at IS NULL AND geom IS NOT NULL
+      SELECT c.id, c.full_name as name, c.customer_code as asset_code,
+             ST_AsGeoJSON(o.geom) as geometry
+      FROM customers c
+      JOIN odps o ON c.odp_id = o.id
+      WHERE c.deleted_at IS NULL AND o.geom IS NOT NULL
     `);
     this.pushFeatures(features, customers, 'Customer');
 
