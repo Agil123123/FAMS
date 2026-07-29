@@ -3,11 +3,13 @@
 # ==========================================================
 
 # ── Stage 1: Install dependencies ─────────────────────────
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 
-# Native module compilation (argon2 needs python3 + make + g++)
-RUN apk add --no-cache python3 make g++
+# Native module compilation + Prisma engine dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy root workspace config + lockfile
 COPY package.json package-lock.json ./
@@ -18,7 +20,7 @@ COPY frontend/package.json ./frontend/
 RUN npm ci
 
 # ── Stage 2: Build ────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -28,13 +30,15 @@ RUN npx prisma generate && \
     npm run build
 
 # ── Stage 3: Production ──────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Prisma engine needs libssl 1.1 (Alpine ships 3.x by default)
-RUN apk add --no-cache openssl1.1-compat
+# Prisma engine needs openssl at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system --gid 1001 nestjs && \
     adduser --system --uid 1001 nestjs
