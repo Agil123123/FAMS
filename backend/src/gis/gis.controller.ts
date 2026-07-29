@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { GisService } from './gis.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -25,5 +25,12 @@ export class GisController {
   @ApiOperation({ summary: 'Get all customers as GeoJSON' })
   getCustomers() {
     return this.gisService.getCustomers();
+  }
+
+  @Post('create')
+  @Permissions('network.write')
+  @ApiOperation({ summary: 'Create asset on map (ODP/Pole/Closure/Homepass)' })
+  create(@Body() body: any, @Request() req: any) {
+    return this.gisService.create(body, req.user.id);
   }
 }

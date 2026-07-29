@@ -11,8 +11,7 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
   const [form, setForm] = useState<Record<string, any>>({});
   const create = useMutation({
     mutationFn: (data: any) => {
-      const endpoints: Record<string, string> = { odp: '/odps', pole: '/poles', closure: '/closures', homepass: '/homepasses' };
-      return api.post(endpoints[type], { ...data, longitude: coordinates.lng, latitude: coordinates.lat });
+      return api.post('/gis/create', { type, name: data.name, longitude: coordinates.lng, latitude: coordinates.lat, ...data });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gis-assets'] }); onCreated?.(); onClose(); },
   });
