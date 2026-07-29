@@ -13,7 +13,11 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
     mutationFn: (data: any) => {
       return api.post('/gis/create', { type, name: data.name, longitude: coordinates.lng, latitude: coordinates.lat, ...data });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gis-assets'] }); onCreated?.(); onClose(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gis-assets'] }); queryClient.invalidateQueries({ queryKey: ['gis-customers'] }); onCreated?.(); onClose(); },
+    onError: (err: any) => {
+      console.error('[CreateDialog] Failed:', err?.response?.data || err?.message || err);
+      alert('Failed to create: ' + (err?.response?.data?.message || err?.message || 'Unknown error'));
+    },
   });
 
   if (!open) return null;
