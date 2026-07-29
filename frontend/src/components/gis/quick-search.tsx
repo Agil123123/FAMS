@@ -9,7 +9,7 @@ export function QuickSearch({ onSelect }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const timer = useRef<NodeJS.Timeout>();
+  const timer = useRef<NodeJS.Timeout>(undefined);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
