@@ -3,8 +3,8 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Map, Source, Layer, NavigationControl, ScaleControl, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Layers, MapPin, Ruler, Crosshair, Cable, Network, Home, Box, Search, X } from 'lucide-react';
-import { useGisAssets, useGisCustomers } from '@/hooks/use-gis';
+import { Layers, MapPin, Ruler, Crosshair, Cable, Network, Home, Box, Search, Satellite, Moon } from 'lucide-react';
+import { useGisSync } from '@/hooks/use-gis-sync';
 import { ContextMenu } from '@/components/gis/context-menu';
 import { QuickSearch } from '@/components/gis/quick-search';
 import { CreateDialog } from '@/components/gis/create-dialog';
@@ -12,15 +12,28 @@ import { CreateCableDialog } from '@/components/gis/create-cable-dialog';
 import { SplitterDialog } from '@/components/gis/splitter-dialog';
 import { ConnectCustomerDialog } from '@/components/gis/connect-customer-dialog';
 import { FiberTracePanel } from '@/components/gis/fiber-trace';
+import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/topology';
 import * as turf from '@turf/turf';
 import api from '@/lib/api';
 
 const JAKARTA: [number, number] = [106.8272, -6.1751];
 
-const mapStyle = {
-  version: 8 as const,
-  sources: { osm: { type: 'raster' as const, tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OSM', maxzoom: 19 } },
-  layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }]
+const TILE_STYLES = {
+  osm: {
+    version: 8 as const,
+    sources: { osm: { type: 'raster' as const, tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OSM', maxzoom: 19 } },
+    layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
+  },
+  satellite: {
+    version: 8 as const,
+    sources: { esri: { type: 'raster' as const, tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: 'Esri', maxzoom: 19 } },
+    layers: [{ id: 'satellite', type: 'raster' as const, source: 'esri' }],
+  },
+  dark: {
+    version: 8 as const,
+    sources: { carto: { type: 'raster' as const, tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'], tileSize: 256, attribution: 'CartoDB', maxzoom: 19 } },
+    layers: [{ id: 'dark', type: 'raster' as const, source: 'carto' }],
+  },
 };
 
 const ASSET_COLORS: Record<string, string> = {
@@ -30,8 +43,11 @@ const ASSET_COLORS: Record<string, string> = {
 
 export default function GisPage() {
   const mapRef = useRef<MapRef>(null);
-  const { data: assets } = useGisAssets();
-  const { data: customers } = useGisCustomers();
+  const { assets, customers, isLoading, startDrag, endDrag, startEdit, endEdit, refetch } = useGisSync();
+
+  // Tile switcher
+  const [tileStyle, setTileStyle] = useState<'osm' | 'satellite' | 'dark'>('osm');
+  const mapStyle = TILE_STYLES[tileStyle];
 
   // Map state
   const [cursorCoords, setCursorCoords] = useState<{lng: number; lat: number} | null>(null);
@@ -60,6 +76,47 @@ export default function GisPage() {
   const [measurePoints, setMeasurePoints] = useState<number[][]>([]);
   const [traceGeoJSON, setTraceGeoJSON] = useState<any>(null);
 
+  // Topology index — built on data change, used for cable rendering + trace
+  const topologyIndex = useMemo<TopologyIndex | null>(() => {
+    const assetList = assets?.features?.map((f: any) => ({
+      id: f.properties?.id || f.properties?.asset_code,
+      name: f.properties?.name || f.properties?.asset_code,
+      type: f.properties?.asset_type || f.properties?.type,
+      coordinates: f.geometry?.coordinates as [number, number],
+      parent: f.properties?.parent,
+      ...f.properties,
+    })) || [];
+    const customerList = customers?.features?.map((f: any) => ({
+      id: f.properties?.id,
+      name: f.properties?.name,
+      type: 'Customer',
+      coordinates: f.geometry?.coordinates as [number, number],
+      parent: f.properties?.parent || f.properties?.odp_id,
+      ...f.properties,
+    })) || [];
+    return buildTopologyIndex(assetList, customerList);
+  }, [assets, customers]);
+
+  // Cable GeoJSON derived from topology
+  const cableGeoJSON = useMemo(() => {
+    if (!topologyIndex || !showCables) return null;
+    const allPaths: number[][][] = [];
+    const allNodes = { ...topologyIndex.nodeMap };
+    Object.keys(allNodes).forEach((key) => {
+      const cables = getDownstreamCables(topologyIndex, key);
+      allPaths.push(...cables);
+    });
+    if (allPaths.length === 0) return null;
+    return {
+      type: 'FeatureCollection',
+      features: allPaths.map((coords) => ({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+        properties: {},
+      })),
+    };
+  }, [topologyIndex, showCables]);
+
   // Quick search handler
   const handleSearchSelect = useCallback((item: { lng: number; lat: number; id: string }) => {
     mapRef.current?.flyTo({ center: [item.lng, item.lat], zoom: 18, duration: 1500 });
@@ -68,6 +125,7 @@ export default function GisPage() {
 
   // Context menu actions
   const handleContextAction = useCallback((action: string, coords: {lng: number; lat: number}) => {
+    startEdit();
     switch (action) {
       case 'add-odp': setCreateType('odp'); setCreateCoords(coords); break;
       case 'add-pole': setCreateType('pole'); setCreateCoords(coords); break;
@@ -77,7 +135,13 @@ export default function GisPage() {
       case 'copy-coords': navigator.clipboard.writeText(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`); break;
     }
     setContextMenu(null);
-  }, []);
+  }, [startEdit]);
+
+  const handleCreateClose = useCallback(() => {
+    setCreateType(null);
+    endEdit();
+    refetch();
+  }, [endEdit, refetch]);
 
   // Map click
   const onMapClick = useCallback((e: any) => {
@@ -99,18 +163,6 @@ export default function GisPage() {
   const onMapMouseMove = useCallback((e: any) => {
     setCursorCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat });
   }, []);
-
-  // Filter assets by type for layers
-  const assetsByType = useMemo(() => {
-    if (!assets) return {};
-    const grouped: Record<string, any[]> = {};
-    assets.features?.forEach((f: any) => {
-      const type = f.properties?.asset_type || f.properties?.type || 'Other';
-      if (!grouped[type]) grouped[type] = [];
-      grouped[type].push(f);
-    });
-    return grouped;
-  }, [assets]);
 
   const measureGeoJSON = useMemo(() => {
     if (measurePoints.length < 2) return null;
@@ -136,6 +188,23 @@ export default function GisPage() {
     <div className="relative w-full h-[calc(100vh-4rem)] flex overflow-hidden">
       {/* LEFT SIDEBAR */}
       <div className="w-80 bg-card border-r border-border flex flex-col z-10 shadow-lg shrink-0">
+        {/* Tile Switcher */}
+        <div className="px-4 pt-3 pb-2 border-b border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Map Style</h3>
+          <div className="flex gap-1">
+            {([
+              { key: 'osm' as const, icon: MapPin, label: 'Street' },
+              { key: 'satellite' as const, icon: Satellite, label: 'Sat' },
+              { key: 'dark' as const, icon: Moon, label: 'Dark' },
+            ]).map(t => (
+              <button key={t.key} onClick={() => setTileStyle(t.key)}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${tileStyle === t.key ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50'}`}>
+                <t.icon className="w-3 h-3" /> {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Quick Search */}
         <div className="p-3 border-b border-border">
           <QuickSearch onSelect={handleSearchSelect} />
@@ -163,15 +232,15 @@ export default function GisPage() {
           <div className="pt-4 mt-4 border-t border-border">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h3>
             <div className="space-y-1">
-              <button onClick={() => setShowCableDialog(true)}
+              <button onClick={() => { startEdit(); setShowCableDialog(true); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
                 <Cable className="w-4 h-4 text-primary" /> Create Fiber Cable
               </button>
-              <button onClick={() => setShowSplitterDialog(true)}
+              <button onClick={() => { startEdit(); setShowSplitterDialog(true); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
                 <Layers className="w-4 h-4 text-primary" /> Add Splitter
               </button>
-              <button onClick={() => setShowConnectDialog(true)}
+              <button onClick={() => { startEdit(); setShowConnectDialog(true); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
                 <Home className="w-4 h-4 text-primary" /> Connect Customer
               </button>
@@ -248,6 +317,14 @@ export default function GisPage() {
             </Source>
           )}
 
+          {/* Cable Layer (from topology) */}
+          {cableGeoJSON && (
+            <Source id="cables-source" type="geojson" data={cableGeoJSON}>
+              <Layer id="cables-layer" type="line"
+                paint={{ 'line-color': '#6366f1', 'line-width': 2, 'line-opacity': 0.6, 'line-dasharray': [4, 2] }} />
+            </Source>
+          )}
+
           {/* Measurement Layer */}
           {isMeasuring && measureGeoJSON && (
             <Source id="measure-source" type="geojson" data={measureGeoJSON}>
@@ -315,12 +392,12 @@ export default function GisPage() {
         open={!!createType}
         type={createType as any}
         coordinates={createCoords}
-        onClose={() => setCreateType(null)}
-        onCreated={() => setCreateType(null)}
+        onClose={handleCreateClose}
+        onCreated={handleCreateClose}
       />
-      <CreateCableDialog open={showCableDialog} onClose={() => setShowCableDialog(false)} />
-      <SplitterDialog open={showSplitterDialog} onClose={() => setShowSplitterDialog(false)} />
-      <ConnectCustomerDialog open={showConnectDialog} onClose={() => setShowConnectDialog(false)} />
+      <CreateCableDialog open={showCableDialog} onClose={() => { setShowCableDialog(false); endEdit(); }} />
+      <SplitterDialog open={showSplitterDialog} onClose={() => { setShowSplitterDialog(false); endEdit(); }} />
+      <ConnectCustomerDialog open={showConnectDialog} onClose={() => { setShowConnectDialog(false); endEdit(); }} />
     </div>
   );
 }
