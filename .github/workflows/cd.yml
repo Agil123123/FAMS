@@ -47,11 +47,10 @@ jobs:
           context: .
           file: infrastructure/docker/backend.Dockerfile
           push: true
+          no-cache: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LC }}/backend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LC }}/backend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build & Push Frontend
         uses: docker/build-push-action@v5
@@ -59,11 +58,10 @@ jobs:
           context: .
           file: infrastructure/docker/frontend.Dockerfile
           push: true
+          no-cache: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LC }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LC }}/frontend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ── Deploy ───────────────────────────────────────────────
   deploy:
