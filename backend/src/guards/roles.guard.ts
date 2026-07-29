@@ -42,14 +42,14 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied: No permissions found');
     }
 
-    // Check if user has at least one required permission
-    const hasPermission = requiredPermissions.some((permission: string) =>
-      user.permissions.includes(permission),
+    // Check if user has the required role (case-insensitive)
+    const hasRole = requiredPermissions.some((role: string) =>
+      user.roles.some((userRole: string) => userRole.toLowerCase() === role.toLowerCase()),
     );
 
-    if (!hasPermission) {
+    if (!hasRole) {
       throw new ForbiddenException(
-        `Access denied: Required permissions [${requiredPermissions.join(', ')}]`,
+        `Access denied: Required roles [${requiredPermissions.join(', ')}]`,
       );
     }
 
