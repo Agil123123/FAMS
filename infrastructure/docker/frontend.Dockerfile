@@ -6,9 +6,11 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
+# Native module compilation (argon2/bcrypt from backend workspace need python3 + make + g++)
+RUN apk add --no-cache python3 make g++
+
 # Copy root workspace config + lockfile
 COPY package.json package-lock.json ./
-# Copy both workspace package.json files (npm ci needs all workspace packages in lockfile)
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
