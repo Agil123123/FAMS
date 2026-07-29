@@ -44,6 +44,9 @@ COPY --from=builder /app/package.json ./
 # Generate Prisma client (needed for runtime enum validation)
 RUN npx prisma generate
 
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown nestjs:nestjs /app/logs
+
 USER nestjs
 
 EXPOSE 3000
