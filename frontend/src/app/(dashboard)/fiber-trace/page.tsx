@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useTraceFromCustomer } from '@/hooks/use-fiber-trace';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { Download, Search, Loader2 } from 'lucide-react';
+
+const FiberTraceMap = dynamic(() => import('./fiber-trace-map'), { ssr: false });
 
 export default function FiberTracePage() {
   const [customerId, setCustomerId] = useState<string>('');
@@ -114,25 +114,10 @@ export default function FiberTracePage() {
         
         <div className="col-span-3 rounded-lg overflow-hidden border bg-muted relative" ref={mapRef}>
           {traceData ? (
-            <MapContainer
-              center={initialCenter}
-              zoom={14}
-              style={{ width: '100%', height: '100%' }}
-              zoomControl={true}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap Contributors"
-              />
-              <GeoJSON
-                data={geojsonFeatures}
-                pointToLayer={(feature, latlng) =>
-                  L.circleMarker(latlng, {
-                    radius: 8, fillColor: '#3b82f6', color: '#ffffff', weight: 2, opacity: 1, fillOpacity: 0.85,
-                  })
-                }
-              />
-            </MapContainer>
+            <FiberTraceMap
+              geojsonFeatures={geojsonFeatures}
+              initialCenter={initialCenter}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               Map Visualization Ready
