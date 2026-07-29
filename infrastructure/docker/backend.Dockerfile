@@ -33,6 +33,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Prisma engine needs libssl 1.1 (Alpine ships 3.x by default)
+RUN apk add --no-cache openssl1.1-compat
+
 RUN addgroup --system --gid 1001 nestjs && \
     adduser --system --uid 1001 nestjs
 
