@@ -17,8 +17,8 @@ export class PermissionsGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     
-    // Super admin overrides all permissions
-    if (user && user.roles && user.roles.includes('SUPER_ADMIN')) {
+    // Super admin overrides all permissions (case-insensitive)
+    if (user && user.roles && user.roles.some((r: string) => r.toLowerCase() === 'super_admin')) {
       return true;
     }
 
