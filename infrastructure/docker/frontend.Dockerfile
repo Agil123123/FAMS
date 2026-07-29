@@ -23,6 +23,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ .
 
+# Ensure public/ dir exists (Next.js needs it, project may not have static files)
+RUN mkdir -p public
+
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
@@ -36,9 +39,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nextjs && \
     adduser --system --uid 1001 nextjs
-
-# public/ may not exist — create empty dir to prevent COPY failure
-RUN mkdir -p public
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
