@@ -15,6 +15,13 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 
+  @Get('types')
+  @Permissions('asset.read')
+  @ApiOperation({ summary: 'Get asset types' })
+  getTypes() {
+    return this.assetsService.getTypes();
+  }
+
   @Post()
   @Permissions('asset.create')
   @ApiOperation({ summary: 'Create a new asset' })

@@ -7,6 +7,13 @@ import { DatabaseService } from '../database/database.service';
 export class AssetsService {
   constructor(private prisma: DatabaseService) {}
 
+  async getTypes() {
+    return this.prisma.assetType.findMany({
+      where: { deleted_at: null },
+      orderBy: { name: 'asc' }
+    });
+  }
+
   async create(createAssetDto: CreateAssetDto) {
     return this.prisma.asset.create({
       data: createAssetDto,
