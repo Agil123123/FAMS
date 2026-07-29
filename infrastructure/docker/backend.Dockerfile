@@ -3,13 +3,11 @@
 # ==========================================================
 
 # ── Stage 1: Install dependencies ─────────────────────────
-FROM node:20-slim AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Native module compilation + Prisma engine dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ openssl \
-    && rm -rf /var/lib/apt/lists/*
+# Native module compilation (argon2 needs python3 + make + g++)
+RUN apk add --no-cache python3 make g++
 
 # Copy root workspace config + lockfile
 COPY package.json package-lock.json ./
@@ -20,7 +18,7 @@ COPY frontend/package.json ./frontend/
 RUN npm ci
 
 # ── Stage 2: Build ────────────────────────────────────────
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -30,15 +28,16 @@ RUN npx prisma generate && \
     npm run build
 
 # ── Stage 3: Production ──────────────────────────────────
-FROM node:20-slim AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Prisma engine needs openssl at runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
+# Prisma engine needs libssl.so.1.1 — Alpine 3.20+ ships libssl.so.3
+# Workaround: symlink .3 → .1.1 (ABI-compatible for Prisma's usage)
+RUN apk add --no-cache openssl && \
+    ln -s /usr/lib/libssl.so.3 /usr/lib/libssl.so.1.1 && \
+    ln -s /usr/lib/libcrypto.so.3 /usr/lib/libcrypto.so.1.1
 
 RUN addgroup --system --gid 1001 nestjs && \
     adduser --system --uid 1001 nestjs
