@@ -108,10 +108,10 @@ export default function GisPage() {
     });
     if (allPaths.length === 0) return null;
     return {
-      type: 'FeatureCollection',
+      type: 'FeatureCollection' as const,
       features: allPaths.map((coords) => ({
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: coords },
+        type: 'Feature' as const,
+        geometry: { type: 'LineString' as const, coordinates: coords },
         properties: {},
       })),
     };
