@@ -41,6 +41,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 
+# Generate Prisma client (needed for runtime enum validation)
+RUN npx prisma generate
+
 USER nestjs
 
 EXPOSE 3000
