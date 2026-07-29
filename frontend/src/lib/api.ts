@@ -9,6 +9,18 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Response interceptor — unwrap NestJS {success, message, data} wrapper
+api.interceptors.response.use(
+  (response) => {
+    // If the response has a NestJS wrapper, unwrap it
+    if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Request interceptor to attach token
 api.interceptors.request.use(
   (config) => {

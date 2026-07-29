@@ -32,22 +32,22 @@ export interface DashboardAlarm {
 
 export const dashboardApi = {
   getKpis: async () => {
-    const { data } = await api.get('/dashboard/kpi');
-    return (data as any).data as DashboardKpis;
+    const { data } = await api.get<DashboardKpis>('/dashboard/kpi');
+    return data;
   },
 
   getActivity: async () => {
-    const { data } = await api.get('/dashboard/activity');
-    return (data as any).data as DashboardActivity[];
+    const { data } = await api.get<DashboardActivity[]>('/dashboard/activity');
+    return data;
   },
 
   getCapacity: async () => {
-    const { data } = await api.get('/dashboard/capacity');
-    return (data as any).data as DashboardCapacity;
+    const { data } = await api.get<DashboardCapacity>('/dashboard/capacity');
+    return data;
   },
 
   getAlarms: async () => {
-    const { data } = await api.get('/dashboard/alarm');
-    return (data as any).data as DashboardAlarm[];
+    const { data } = await api.get<DashboardAlarm[]>('/dashboard/alarm');
+    return data;
   },
 };
