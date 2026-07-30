@@ -22,6 +22,7 @@ import { OltsModule } from './olts/olts.module';
 import { OdcsModule } from './odcs/odcs.module';
 import { OdpsModule } from './odps/odps.module';
 import { SplittersModule } from './splitters/splitters.module';
+import { FiberCablesModule } from './fiber-cables/fiber-cables.module';
 import { FiberCoresModule } from './fiber-cores/fiber-cores.module';
 import { FiberSplicesModule } from './fiber-splices/fiber-splices.module';
 import { FiberTraceModule } from './fiber-trace/fiber-trace.module';
@@ -29,6 +30,7 @@ import { GisModule } from './gis/gis.module';
 import { HomepassesModule } from './homepasses/homepasses.module';
 import { CustomersModule } from './customers/customers.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
@@ -90,6 +92,7 @@ import { configValidationSchema } from './config/config.validation';
     OdcsModule,
     OdpsModule,
     SplittersModule,
+    FiberCablesModule,
     FiberCoresModule,
     FiberSplicesModule,
     FiberTraceModule,
@@ -97,6 +100,7 @@ import { configValidationSchema } from './config/config.validation';
     HomepassesModule,
     CustomersModule,
     WorkOrdersModule,
+    MonitoringModule,
     ReportsModule,
     NotificationsModule,
     AiModule,
