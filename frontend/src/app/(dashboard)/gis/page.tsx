@@ -135,8 +135,23 @@ export default function GisPage() {
 
   const onEachAsset = useCallback((feature: any, layer: L.Layer) => {
     const props = feature.properties;
+    const coords = feature.geometry.coordinates;
+    layer.bindPopup(`
+      <div style="min-width:180px;font-family:sans-serif">
+        <strong>${props.name || props.asset_code}</strong><br/>
+        <span style="color:#888;font-size:11px">${props.type || 'ODP'}</span><br/>
+        <span style="color:#888;font-size:11px">${props.asset_code || ''}</span>
+        <div style="margin-top:6px;display:flex;gap:4px">
+          <button onclick="window.__gisTrace('${props.id}','${props.name}')" 
+            style="font-size:11px;padding:2px 8px;background:#6366f1;color:white;border:none;border-radius:4px;cursor:pointer">Trace</button>
+          <button onclick="window.__gisActions('${coords[0]}','${coords[1]}')" 
+            style="font-size:11px;padding:2px 8px;background:#333;color:white;border:none;border-radius:4px;cursor:pointer">Actions</button>
+        </div>
+      </div>
+    `);
+    // Also keep the click handler for popupInfo state
     layer.on('click', () => {
-      setPopupInfo({ ...props, lng: feature.geometry.coordinates[0], lat: feature.geometry.coordinates[1] });
+      setPopupInfo({ ...props, lng: coords[0], lat: coords[1] });
     });
   }, []);
 
