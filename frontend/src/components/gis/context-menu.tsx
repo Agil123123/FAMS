@@ -26,7 +26,7 @@ export function ContextMenu({ x, y, lng, lat, onClose, onAction }: Props) {
   const sy = Math.min(y, window.innerHeight - 280);
 
   return (
-    <div ref={ref} className="absolute z-50 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl p-1.5 w-56"
+    <div ref={ref} className="absolute z-[2000] bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl p-1.5 w-56"
       style={{ left: sx, top: sy }}>
       {menuItems.map(item => (
         <button key={item.id}

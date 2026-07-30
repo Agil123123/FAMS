@@ -56,7 +56,7 @@ export function QuickSearch({ onSelect }: Props) {
           className="w-full pl-9 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
       </div>
       {open && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl max-h-80 overflow-y-auto z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl max-h-80 overflow-y-auto z-[2000]">
           {results.map((item: any, i: number) => (
             <button key={i} onClick={() => handleSelect(item)}
               className="w-full flex items-center gap-3 px-3 py-2 hover:bg-neutral-800 text-sm text-left">

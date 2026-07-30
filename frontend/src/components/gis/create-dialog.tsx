@@ -25,7 +25,7 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
   const titles: Record<string, string> = { odp: 'Add ODP', pole: 'Add Pole', closure: 'Add Closure', homepass: 'Add Homepass' };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60" onClick={onClose}>
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-bold">{titles[type]}</h2>
