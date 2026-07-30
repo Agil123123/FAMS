@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Cable, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -79,7 +80,7 @@ export function FiberLinkManager() {
     </button>
   );
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
@@ -173,6 +174,7 @@ export function FiberLinkManager() {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
