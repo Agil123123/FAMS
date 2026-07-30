@@ -301,6 +301,7 @@ model PonPort {
 
   olt  Olt   @relation(fields: [olt_id], references: [id])
   odcs Odc[]
+  odp_links OdpLink[]
 
   created_at DateTime  @default(now()) @db.Timestamptz
   updated_at DateTime  @updatedAt @db.Timestamptz
@@ -364,6 +365,7 @@ model Odp {
   customers Customer[]
   outgoing_links OdpLink[] @relation("OdpFromLink")
   incoming_links OdpLink[] @relation("OdpToLink")
+  splice_records OdpSpliceRecord[]
 
   created_at DateTime  @default(now()) @db.Timestamptz
   updated_at DateTime  @updatedAt @db.Timestamptz
@@ -437,6 +439,7 @@ model FiberCable {
 
   cable_type  CableType   @relation(fields: [cable_type_id], references: [id])
   fiber_cores FiberCore[]
+  odp_links OdpLink[]
 
   created_at DateTime  @default(now()) @db.Timestamptz
   updated_at DateTime  @updatedAt @db.Timestamptz
@@ -1026,17 +1029,21 @@ model AssetPhoto {
 // ==========================================================
 
 model OdpLink {
-  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  from_odp_id String  @db.Uuid
-  to_odp_id   String  @db.Uuid
-  from_port   Int     @default(1)
-  to_port     Int     @default(1)
-  cable_color String? @db.VarChar(20)
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  from_odp_id String   @db.Uuid
+  to_odp_id   String   @db.Uuid
+  from_port   Int      @default(1)
+  to_port     Int      @default(1)
+  cable_color String?  @db.VarChar(20)
   cable_core  Int?
-  status      String  @default("active") @db.VarChar(20)
+  pon_port_id String?  @db.Uuid
+  cable_id    String?  @db.Uuid
+  status      String   @default("active") @db.VarChar(20)
 
-  from_odp Odp @relation("OdpFromLink", fields: [from_odp_id], references: [id])
-  to_odp   Odp @relation("OdpToLink", fields: [to_odp_id], references: [id])
+  from_odp  Odp       @relation("OdpFromLink", fields: [from_odp_id], references: [id])
+  to_odp    Odp       @relation("OdpToLink", fields: [to_odp_id], references: [id])
+  pon_port  PonPort?  @relation(fields: [pon_port_id], references: [id])
+  cable     FiberCable? @relation(fields: [cable_id], references: [id])
 
   created_at DateTime  @default(now()) @db.Timestamptz
   updated_at DateTime  @updatedAt @db.Timestamptz
@@ -1045,7 +1052,39 @@ model OdpLink {
 
   @@index([from_odp_id])
   @@index([to_odp_id])
+  @@index([pon_port_id])
   @@map("odp_links")
+}
+
+// ==========================================================
+// ODP SPLICE RECORDS (cross-connect inside ODP tray)
+// ==========================================================
+
+model OdpSpliceRecord {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  odp_id      String   @db.Uuid
+  odp         Odp      @relation(fields: [odp_id], references: [id])
+  tray_number Int      @default(1)
+  // Source (incoming fiber)
+  source_type  String  @db.VarChar(50) // cable_core, splitter_output, pigtail, cross_connect, pon_feeder
+  source_label String  @db.VarChar(255) // "Kabel Feeder 12C Core 3" or "Splitter 1:4 Output 2"
+  source_core  Int?    // if source is cable, which core number
+  // Target (what it connects to)
+  target_type  String  @db.VarChar(50) // cable_core, splitter_input, pigtail, odp_port, cross_connect
+  target_label String  @db.VarChar(255) // "Core 7 ke ODP-B" or "Splitter 1:8 Input" or "ODP Port 5"
+  target_core  Int?    // if target is cable/port, which number
+  // Details
+  splice_type  String  @default("fusion") @db.VarChar(30) // fusion, mechanical, connector, pigtail
+  attenuation  Float?  // dB loss
+  notes        String? @db.Text
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+
+  @@index([odp_id])
+  @@map("odp_splice_records")
 }
 
 // ==========================================================

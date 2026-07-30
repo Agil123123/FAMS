@@ -14,6 +14,7 @@ import { ConnectCustomerDialog } from '@/components/gis/connect-customer-dialog'
 import { FiberTracePanel } from '@/components/gis/fiber-trace';
 import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/topology';
 import { FiberLinkManager } from '@/components/gis/fiber-link-manager';
+import { OdpDetailPanel } from '@/components/gis/odp-detail-panel';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import * as turf from '@turf/turf';
@@ -55,6 +56,7 @@ export default function GisPage() {
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<number[][]>([]);
   const [traceGeoJSON, setTraceGeoJSON] = useState<any>(null);
+  const [selectedOdpId, setSelectedOdpId] = useState<string | null>(null);
 
   const topologyIndex = useMemo<TopologyIndex | null>(() => {
     const assetList = assets?.features?.map((f: any) => ({
@@ -146,12 +148,15 @@ export default function GisPage() {
   const onEachAsset = useCallback((feature: any, layer: L.Layer) => {
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
+    const isOdp = props.type === 'ODP';
     layer.bindPopup(`
       <div style="min-width:180px;font-family:sans-serif">
         <strong>${props.name || props.asset_code}</strong><br/>
         <span style="color:#888;font-size:11px">${props.type || 'ODP'}</span><br/>
         <span style="color:#888;font-size:11px">${props.asset_code || ''}</span>
         <div style="margin-top:6px;display:flex;gap:4px">
+          ${isOdp ? `<button onclick="window.__gisOdpDetail('${props.id}')"
+            style="font-size:11px;padding:2px 8px;background:#22c55e;color:white;border:none;border-radius:4px;cursor:pointer">Detail</button>` : ''}
           <button onclick="window.__gisTrace('${props.id}','${props.name}')" 
             style="font-size:11px;padding:2px 8px;background:#6366f1;color:white;border:none;border-radius:4px;cursor:pointer">Trace</button>
           <button onclick="window.__gisActions('${coords[0]}','${coords[1]}')" 
@@ -159,9 +164,13 @@ export default function GisPage() {
         </div>
       </div>
     `);
-    // Also keep the click handler for popupInfo state
     layer.on('click', () => {
-      setPopupInfo({ ...props, lng: coords[0], lat: coords[1] });
+      if (isOdp) {
+        setSelectedOdpId(props.id);
+        setPopupInfo(null);
+      } else {
+        setPopupInfo({ ...props, lng: coords[0], lat: coords[1] });
+      }
     });
   }, []);
 
@@ -194,12 +203,13 @@ export default function GisPage() {
     color: '#f97316', weight: 6, opacity: 0.8,
   }), []);
 
-  // Keyboard
+  // Keyboard + global handlers
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'm' || e.key === 'M') { setIsMeasuring(prev => !prev); setMeasurePoints([]); }
-      if (e.key === 'Escape') { setPopupInfo(null); setContextMenu(null); setShowTrace(null); }
+      if (e.key === 'Escape') { setPopupInfo(null); setContextMenu(null); setShowTrace(null); setSelectedOdpId(null); }
     };
+    (window as any).__gisOdpDetail = (id: string) => setSelectedOdpId(id);
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
@@ -348,6 +358,9 @@ export default function GisPage() {
             onHighlight={(geojson) => setTraceGeoJSON(geojson)}
             onClearHighlight={() => setTraceGeoJSON(null)}
           />
+        )}
+        {selectedOdpId && (
+          <OdpDetailPanel odpId={selectedOdpId} onClose={() => setSelectedOdpId(null)} />
         )}
       </div>
 
