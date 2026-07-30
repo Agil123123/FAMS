@@ -1,111 +1,44 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
-import { Layers, MapPin, Ruler, Crosshair, Cable, Network, Home, Box, Search, Satellite, Moon } from 'lucide-react';
+import { Layers, MapPin, Ruler, Crosshair, Network, Home, Search, Satellite, Moon } from 'lucide-react';
 import { useGisSync } from '@/hooks/use-gis-sync';
 import { ContextMenu } from '@/components/gis/context-menu';
 import { QuickSearch } from '@/components/gis/quick-search';
 import { CreateDialog } from '@/components/gis/create-dialog';
-import { CreateCableDialog } from '@/components/gis/create-cable-dialog';
-import { SplitterDialog } from '@/components/gis/splitter-dialog';
-import { ConnectCustomerDialog } from '@/components/gis/connect-customer-dialog';
-import { FiberTracePanel } from '@/components/gis/fiber-trace';
-import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/topology';
-import { FiberLinkManager } from '@/components/gis/fiber-link-manager';
-import OdpDetailPanel from '@/components/gis/odp-detail-panel';
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
 import * as turf from '@turf/turf';
 
 const GisMap = dynamic(() => import('./gis-map'), { ssr: false });
 
-const ASSET_COLORS: Record<string, string> = {
-  OLT: '#f97316', ODC: '#eab308', ODP: '#22c55e', Pole: '#a855f7',
-  Closure: '#06b6d4', Splitter: '#ec4899', Cable: '#6366f1',
-};
-
 export default function GisPage() {
-  const { assets, customers, isLoading, startDrag, endDrag, startEdit, endEdit, refetch } = useGisSync();
+  const { assets, customers, isLoading, startEdit, endEdit, refetch } = useGisSync();
 
   const [tileStyle, setTileStyle] = useState<'osm' | 'satellite' | 'dark'>('osm');
-  const [cursorCoords, setCursorCoords] = useState<{lng: number; lat: number} | null>(null);
-  const [contextMenu, setContextMenu] = useState<{x: number; y: number; lng: number; lat: number} | null>(null);
+  const [cursorCoords, setCursorCoords] = useState<{ lng: number; lat: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lng: number; lat: number } | null>(null);
   const [popupInfo, setPopupInfo] = useState<any>(null);
-  const [flyTo, setFlyTo] = useState<{center: [number, number]; zoom: number} | null>(null);
+  const [flyTo, setFlyTo] = useState<{ center: [number, number]; zoom: number } | null>(null);
 
   const [createType, setCreateType] = useState<string | null>(null);
-  const [createCoords, setCreateCoords] = useState<{lng: number; lat: number}>({ lng: 106.8272, lat: -6.1751 });
-  const [showCableDialog, setShowCableDialog] = useState(false);
-  const [showSplitterDialog, setShowSplitterDialog] = useState(false);
-  const [showConnectDialog, setShowConnectDialog] = useState(false);
-  const [showTrace, setShowTrace] = useState<{id: string; type: 'odp' | 'customer'; name: string} | null>(null);
+  const [createCoords, setCreateCoords] = useState<{ lng: number; lat: number }>({ lng: 106.8272, lat: -6.1751 });
 
   const [showAssets, setShowAssets] = useState(true);
   const [showCustomers, setShowCustomers] = useState(true);
-  const [showCables, setShowCables] = useState(true);
-  const [showFiberLinks, setShowFiberLinks] = useState(true);
-
-  const { data: fiberLinkGeoJSON } = useQuery({
-    queryKey: ['fiber-links-geojson'],
-    queryFn: () => api.get('/fiber-links/geojson').then(r => r.data),
-    refetchInterval: 30000,
-  });
 
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<number[][]>([]);
-  const [traceGeoJSON, setTraceGeoJSON] = useState<any>(null);
-  const [selectedOdpId, setSelectedOdpId] = useState<string | null>(null);
-
-  const topologyIndex = useMemo<TopologyIndex | null>(() => {
-    const assetList = assets?.features?.map((f: any) => ({
-      id: f.properties?.id || f.properties?.asset_code,
-      name: f.properties?.name || f.properties?.asset_code,
-      type: f.properties?.asset_type || f.properties?.type,
-      coordinates: f.geometry?.coordinates as [number, number],
-      parent: f.properties?.parent,
-      ...f.properties,
-    })) || [];
-    const customerList = customers?.features?.map((f: any) => ({
-      id: f.properties?.id,
-      name: f.properties?.name,
-      type: 'Customer',
-      coordinates: f.geometry?.coordinates as [number, number],
-      parent: f.properties?.parent || f.properties?.odp_id,
-      ...f.properties,
-    })) || [];
-    return buildTopologyIndex(assetList, customerList);
-  }, [assets, customers]);
-
-  const cableGeoJSON = useMemo(() => {
-    if (!topologyIndex || !showCables) return null;
-    const allPaths: number[][][] = [];
-    Object.keys(topologyIndex.nodeMap).forEach((key) => {
-      allPaths.push(...getDownstreamCables(topologyIndex, key));
-    });
-    if (allPaths.length === 0) return null;
-    return {
-      type: 'FeatureCollection' as const,
-      features: allPaths.map((coords) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'LineString' as const, coordinates: coords },
-        properties: {},
-      })),
-    };
-  }, [topologyIndex, showCables]);
 
   const handleSearchSelect = useCallback((item: { lng: number; lat: number; id: string }) => {
     setFlyTo({ center: [item.lat, item.lng], zoom: 18 });
     setPopupInfo(item);
   }, []);
 
-  const handleContextAction = useCallback((action: string, coords: {lng: number; lat: number}) => {
+  const handleContextAction = useCallback((action: string, coords: { lng: number; lat: number }) => {
     startEdit();
     switch (action) {
       case 'add-odp': setCreateType('odp'); setCreateCoords(coords); break;
-      case 'add-pole': setCreateType('pole'); setCreateCoords(coords); break;
-      case 'add-closure': setCreateType('closure'); setCreateCoords(coords); break;
       case 'add-homepass': setCreateType('homepass'); setCreateCoords(coords); break;
       case 'measure': setIsMeasuring(true); break;
       case 'copy-coords': navigator.clipboard.writeText(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`); break;
@@ -148,29 +81,16 @@ export default function GisPage() {
   const onEachAsset = useCallback((feature: any, layer: L.Layer) => {
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const isOdp = props.type === 'ODP';
     layer.bindPopup(`
       <div style="min-width:180px;font-family:sans-serif">
         <strong>${props.name || props.asset_code}</strong><br/>
         <span style="color:#888;font-size:11px">${props.type || 'ODP'}</span><br/>
         <span style="color:#888;font-size:11px">${props.asset_code || ''}</span>
-        <div style="margin-top:6px;display:flex;gap:4px">
-          ${isOdp ? `<button onclick="window.__gisOdpDetail('${props.id}')"
-            style="font-size:11px;padding:2px 8px;background:#22c55e;color:white;border:none;border-radius:4px;cursor:pointer">Detail</button>` : ''}
-          <button onclick="window.__gisTrace('${props.id}','${props.name}')" 
-            style="font-size:11px;padding:2px 8px;background:#6366f1;color:white;border:none;border-radius:4px;cursor:pointer">Trace</button>
-          <button onclick="window.__gisActions('${coords[0]}','${coords[1]}')" 
-            style="font-size:11px;padding:2px 8px;background:#333;color:white;border:none;border-radius:4px;cursor:pointer">Actions</button>
-        </div>
+        ${props.address ? `<br/><span style="color:#888;font-size:11px">${props.address}</span>` : ''}
       </div>
     `);
     layer.on('click', () => {
-      if (isOdp) {
-        setSelectedOdpId(props.id);
-        setPopupInfo(null);
-      } else {
-        setPopupInfo({ ...props, lng: coords[0], lat: coords[1] });
-      }
+      setPopupInfo({ ...props, lng: coords[0], lat: coords[1] });
     });
   }, []);
 
@@ -191,25 +111,12 @@ export default function GisPage() {
     return turf.length(turf.lineString(measurePoints), { units: 'meters' });
   }, [measurePoints]);
 
-  const cableStyle = useCallback(() => ({
-    color: '#6366f1', weight: 2, opacity: 0.6, dashArray: '4 2',
-  }), []);
-
-  const measureStyle = useCallback(() => ({
-    color: '#f97316', weight: 4, dashArray: '2 2',
-  }), []);
-
-  const traceStyle = useCallback(() => ({
-    color: '#f97316', weight: 6, opacity: 0.8,
-  }), []);
-
-  // Keyboard + global handlers
-  useEffect(() => {
+  // Keyboard
+  React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'm' || e.key === 'M') { setIsMeasuring(prev => !prev); setMeasurePoints([]); }
-      if (e.key === 'Escape') { setPopupInfo(null); setContextMenu(null); setShowTrace(null); setSelectedOdpId(null); }
+      if (e.key === 'Escape') { setPopupInfo(null); setContextMenu(null); }
     };
-    (window as any).__gisOdpDetail = (id: string) => setSelectedOdpId(id);
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
@@ -243,8 +150,6 @@ export default function GisPage() {
           {[
             { key: 'showAssets', label: 'Network Assets', icon: Network, color: '#22c55e', state: showAssets, set: setShowAssets },
             { key: 'showCustomers', label: 'Customers', icon: Home, color: '#ef4444', state: showCustomers, set: setShowCustomers },
-            { key: 'showCables', label: 'Fiber Cables', icon: Cable, color: '#6366f1', state: showCables, set: setShowCables },
-            { key: 'showFiberLinks', label: 'ODP Fiber Links', icon: Cable, color: '#f59e0b', state: showFiberLinks, set: setShowFiberLinks },
           ].map(layer => (
             <label key={layer.key} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm">
               <input type="checkbox" checked={layer.state} onChange={e => layer.set(e.target.checked)} className="rounded" />
@@ -252,25 +157,6 @@ export default function GisPage() {
               <span>{layer.label}</span>
             </label>
           ))}
-
-          <div className="pt-4 mt-4 border-t border-border">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h3>
-            <div className="space-y-1">
-              <FiberLinkManager />
-              <button onClick={() => { startEdit(); setShowCableDialog(true); }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
-                <Cable className="w-4 h-4 text-primary" /> Create Fiber Cable
-              </button>
-              <button onClick={() => { startEdit(); setShowSplitterDialog(true); }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
-                <Layers className="w-4 h-4 text-primary" /> Add Splitter
-              </button>
-              <button onClick={() => { startEdit(); setShowConnectDialog(true); }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
-                <Home className="w-4 h-4 text-primary" /> Connect Customer
-              </button>
-            </div>
-          </div>
 
           <div className="pt-4 mt-4 border-t border-border">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3 flex items-center gap-1">
@@ -291,12 +177,14 @@ export default function GisPage() {
           <div className="pt-4 mt-4 border-t border-border">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Legend</h3>
             <div className="space-y-1.5">
-              {Object.entries(ASSET_COLORS).map(([type, color]) => (
-                <div key={type} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                  <span>{type}</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                <span>ODP</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f97316' }} />
+                <span>Homepass</span>
+              </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }} />
                 <span>Customer</span>
@@ -313,27 +201,18 @@ export default function GisPage() {
           flyTo={flyTo}
           popupInfo={popupInfo}
           onPopupClose={() => setPopupInfo(null)}
-          onTraceClick={(id, name) => setShowTrace({ id, type: 'odp', name })}
           onActionClick={(lng, lat) => setContextMenu({ x: lng, y: lat, lng, lat })}
           showAssets={showAssets}
           showCustomers={showCustomers}
-          showCables={showCables}
-          showFiberLinks={showFiberLinks}
           isMeasuring={isMeasuring}
           assets={assets}
           customers={customers}
-          cableGeoJSON={cableGeoJSON}
-          fiberLinkGeoJSON={fiberLinkGeoJSON}
           measureGeoJSON={measureGeoJSON}
-          traceGeoJSON={traceGeoJSON}
           onMapClick={onMapClick}
           onMapRightClick={onMapRightClick}
           onMapMouseMove={onMapMouseMove}
           onEachAsset={onEachAsset}
           onEachCustomer={onEachCustomer}
-          cableStyle={cableStyle}
-          measureStyle={measureStyle}
-          traceStyle={traceStyle}
         />
 
         {contextMenu && (
@@ -350,25 +229,10 @@ export default function GisPage() {
             {cursorCoords ? `${cursorCoords.lat.toFixed(5)}, ${cursorCoords.lng.toFixed(5)}` : 'Hover map for coords'}
           </div>
         </div>
-
-        {showTrace && (
-          <FiberTracePanel
-            assetId={showTrace.id} assetType={showTrace.type} assetName={showTrace.name}
-            onClose={() => setShowTrace(null)}
-            onHighlight={(geojson) => setTraceGeoJSON(geojson)}
-            onClearHighlight={() => setTraceGeoJSON(null)}
-          />
-        )}
-        {selectedOdpId && (
-          <OdpDetailPanel odpId={selectedOdpId} onClose={() => setSelectedOdpId(null)} />
-        )}
       </div>
 
       <CreateDialog open={!!createType} type={createType as any} coordinates={createCoords}
         onClose={handleCreateClose} onCreated={handleCreateClose} />
-      <CreateCableDialog open={showCableDialog} onClose={() => { setShowCableDialog(false); endEdit(); }} />
-      <SplitterDialog open={showSplitterDialog} onClose={() => { setShowSplitterDialog(false); endEdit(); }} />
-      <ConnectCustomerDialog open={showConnectDialog} onClose={() => { setShowConnectDialog(false); endEdit(); }} />
     </div>
   );
 }
