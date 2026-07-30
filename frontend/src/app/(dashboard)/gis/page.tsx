@@ -14,7 +14,7 @@ import { ConnectCustomerDialog } from '@/components/gis/connect-customer-dialog'
 import { FiberTracePanel } from '@/components/gis/fiber-trace';
 import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/topology';
 import { FiberLinkManager } from '@/components/gis/fiber-link-manager';
-import { OdpDetailPanel } from '@/components/gis/odp-detail-panel';
+import OdpDetailPanel from '@/components/gis/odp-detail-panel';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import * as turf from '@turf/turf';
