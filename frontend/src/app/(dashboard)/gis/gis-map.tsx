@@ -64,7 +64,7 @@ function TileController({ tileStyle }: { tileStyle: string }) {
 // ---- Asset marker style ----
 
 function assetPointToLayer(feature: any, latlng: L.LatLng) {
-  const type = feature.properties?.asset_type || 'Other';
+  const type = feature.properties?.type || feature.properties?.asset_type || 'Other';
   const color = ASSET_COLORS[type] || '#11b4da';
   return L.circleMarker(latlng, {
     radius: 8, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85,
@@ -130,10 +130,10 @@ export default function GisMap(props: GisMapProps) {
       <MapEvents onMapClick={onMapClick} onMapRightClick={onMapRightClick} onMapMouseMove={onMapMouseMove} />
 
       {showAssets && assets && (
-        <GeoJSON key="assets" data={assets} pointToLayer={assetPointToLayer} onEachFeature={onEachAsset} />
+        <GeoJSON key={`assets-${assets?.features?.length || 0}`} data={assets} pointToLayer={assetPointToLayer} onEachFeature={onEachAsset} />
       )}
       {showCustomers && customers && (
-        <GeoJSON key="customers" data={customers} pointToLayer={customerPointToLayer} onEachFeature={onEachCustomer} />
+        <GeoJSON key={`customers-${customers?.features?.length || 0}`} data={customers} pointToLayer={customerPointToLayer} onEachFeature={onEachCustomer} />
       )}
       {cableGeoJSON && (
         <GeoJSON key="cables" data={cableGeoJSON} style={cableStyle} />
