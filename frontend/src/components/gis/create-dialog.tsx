@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Wrench, Plug } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 interface Props {
@@ -31,11 +31,29 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<'general' | 'connection'>('general');
   const [form, setForm] = useState<Record<string, any>>({});
+  const [parentId, setParentId] = useState('');
+
+  // Fetch ODPs for parent dropdown
+  const { data: odpList } = useQuery({
+    queryKey: ['gis-odps-list'],
+    queryFn: () => api.get('/gis/odps').then(r => r.data),
+    enabled: open,
+  });
+
+  // Fetch ports when parent selected
+  const { data: parentPorts } = useQuery({
+    queryKey: ['gis-odp-ports', parentId],
+    queryFn: () => api.get(`/gis/odps/${parentId}/ports`).then(r => r.data),
+    enabled: !!parentId,
+  });
+
   const create = useMutation({
     mutationFn: (data: any) => {
-      return api.post('/gis/create', { type, name: data.name, longitude: coordinates.lng, latitude: coordinates.lat, ...data });
+      const payload = { type, name: data.name, longitude: coordinates.lng, latitude: coordinates.lat, ...data };
+      if (parentId) payload.parent_id = parentId;
+      return api.post('/gis/create', payload);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gis-assets'] }); queryClient.invalidateQueries({ queryKey: ['gis-customers'] }); onCreated?.(); onClose(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gis-assets'] }); queryClient.invalidateQueries({ queryKey: ['gis-customers'] }); queryClient.invalidateQueries({ queryKey: ['gis-odps-list'] }); onCreated?.(); onClose(); },
     onError: (err: any) => {
       console.error('[CreateDialog] Failed:', err?.response?.data || err?.message || err);
       alert('Gagal: ' + (err?.response?.data?.message || err?.message || 'Unknown'));
@@ -45,6 +63,8 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
   if (!open) return null;
 
   const titles: Record<string, string> = { odp: 'Tambah ODP', pole: 'Tambah Tiang', closure: 'Tambah Closure', homepass: 'Tambah Homepass' };
+
+  const selectedParent = parentId ? (odpList || []).find((o: any) => o.id === parentId) : null;
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60" onClick={onClose}>
@@ -170,8 +190,20 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium mb-1">Parent (Induk)</label>
-                    <input value={form.parent_name || ''} onChange={e => setForm({...form, parent_name: e.target.value})}
-                      placeholder="Nama perangkat induk" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md" />
+                    <select value={parentId} onChange={e => setParentId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md">
+                      <option value="">-- Tidak ada (standalone) --</option>
+                      {(odpList || []).map((odp: any) => (
+                        <option key={odp.id} value={odp.id}>
+                          {odp.name} ({odp.asset_code}) — {odp.free_ports} port bebas
+                        </option>
+                      ))}
+                    </select>
+                    {selectedParent && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Parent: {selectedParent.free_ports}/{selectedParent.capacity} port tersedia
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -204,8 +236,15 @@ export function CreateDialog({ type, coordinates, open, onClose, onCreated }: Pr
 
                   <div>
                     <label className="block text-xs font-medium mb-1">Dari Port Parent (Output)</label>
-                    <input value={form.from_port || ''} onChange={e => setForm({...form, from_port: e.target.value})}
-                      placeholder="cth: Port 3, LAN 2" className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md" />
+                    <select value={form.from_port || ''} onChange={e => setForm({...form, from_port: e.target.value})}
+                      className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md">
+                      <option value="">-- Pilih port --</option>
+                      {parentPorts?.ports?.map((p: any) => (
+                        <option key={p.number} value={p.number} disabled={p.status === 'used'}>
+                          Port {p.number} {p.status === 'used' ? '(terpakai)' : '(bebas)'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>

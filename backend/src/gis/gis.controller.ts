@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Request, UseGuards } from '@nestjs/common';
 import { GisService } from './gis.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -25,6 +25,20 @@ export class GisController {
   @ApiOperation({ summary: 'Get all customers as GeoJSON' })
   getCustomers() {
     return this.gisService.getCustomers();
+  }
+
+  @Get('odps')
+  @Permissions('network.read')
+  @ApiOperation({ summary: 'List all ODPs for parent selection' })
+  getOdpsList() {
+    return this.gisService.getOdpsList();
+  }
+
+  @Get('odps/:id/ports')
+  @Permissions('network.read')
+  @ApiOperation({ summary: 'Get used/free ports for an ODP' })
+  getOdpPorts(@Param('id') id: string) {
+    return this.gisService.getOdpPorts(id);
   }
 
   @Post('create')

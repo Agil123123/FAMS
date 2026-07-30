@@ -169,4 +169,56 @@ export class GisService {
       }
     }
   }
+
+  async getOdpsList() {
+    const odps = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT o.id, o.name, o.asset_code, ST_AsGeoJSON(o.geom) as geometry,
+             COALESCE((SELECT COUNT(*) FROM customers c WHERE c.odp_id = o.id AND c.deleted_at IS NULL), 0) as used_ports
+      FROM odps o
+      WHERE o.deleted_at IS NULL
+      ORDER BY o.name ASC
+    `);
+    return odps.map((o: any) => {
+      const capacity = 8;
+      const used = parseInt(o.used_ports) || 0;
+      return {
+        id: o.id,
+        name: o.name,
+        asset_code: o.asset_code,
+        capacity,
+        used_ports: used,
+        free_ports: capacity - used,
+        coordinates: o.geometry ? JSON.parse(o.geometry).coordinates : null,
+      };
+    });
+  }
+
+  async getOdpPorts(id: string) {
+    // Get ODP capacity + count connected children
+    const odp = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT o.id, o.name, o.asset_code,
+             (SELECT COUNT(*) FROM customers c WHERE c.odp_id = o.id AND c.deleted_at IS NULL) as used_ports
+      FROM odps o WHERE o.id = $1::uuid AND o.deleted_at IS NULL
+    `, id);
+
+    if (odp.length === 0) return { error: 'ODP not found' };
+
+    const o = odp[0];
+    const capacity = 8; // default, can be extended
+    const used = parseInt(o.used_ports) || 0;
+    const free = capacity - used;
+
+    return {
+      id: o.id,
+      name: o.name,
+      asset_code: o.asset_code,
+      capacity,
+      used_ports: used,
+      free_ports: free,
+      ports: Array.from({ length: capacity }, (_, i) => ({
+        number: i + 1,
+        status: i < used ? 'used' : 'free',
+      })),
+    };
+  }
 }
