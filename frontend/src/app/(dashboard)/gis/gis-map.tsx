@@ -89,10 +89,12 @@ export interface GisMapProps {
   showAssets: boolean;
   showCustomers: boolean;
   showCables: boolean;
+  showFiberLinks: boolean;
   isMeasuring: boolean;
   assets: any;
   customers: any;
   cableGeoJSON: any;
+  fiberLinkGeoJSON: any;
   measureGeoJSON: any;
   traceGeoJSON: any;
   onMapClick: (e: L.LeafletMouseEvent) => void;
@@ -110,8 +112,8 @@ export interface GisMapProps {
 export default function GisMap(props: GisMapProps) {
   const {
     tileStyle, flyTo, popupInfo, onPopupClose, onTraceClick, onActionClick,
-    showAssets, showCustomers, showCables, isMeasuring,
-    assets, customers, cableGeoJSON, measureGeoJSON, traceGeoJSON,
+    showAssets, showCustomers, showCables, showFiberLinks, isMeasuring,
+    assets, customers, cableGeoJSON, fiberLinkGeoJSON, measureGeoJSON, traceGeoJSON,
     onMapClick, onMapRightClick, onMapMouseMove,
     onEachAsset, onEachCustomer,
     cableStyle, measureStyle, traceStyle,
@@ -137,6 +139,9 @@ export default function GisMap(props: GisMapProps) {
       )}
       {cableGeoJSON && (
         <GeoJSON key="cables" data={cableGeoJSON} style={cableStyle} />
+      )}
+      {showFiberLinks && fiberLinkGeoJSON?.features?.length > 0 && (
+        <GeoJSON key={`fiberlinks-${fiberLinkGeoJSON.features.length}`} data={fiberLinkGeoJSON} style={() => ({ color: '#f59e0b', weight: 4, opacity: 0.8 })} />
       )}
       {isMeasuring && measureGeoJSON && (
         <GeoJSON key="measure" data={measureGeoJSON} style={measureStyle} />

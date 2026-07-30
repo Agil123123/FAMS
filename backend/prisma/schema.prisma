@@ -362,6 +362,8 @@ model Odp {
   closure   Closure    @relation(fields: [closure_id], references: [id])
   splitters Splitter[]
   customers Customer[]
+  outgoing_links OdpLink[] @relation("OdpFromLink")
+  incoming_links OdpLink[] @relation("OdpToLink")
 
   created_at DateTime  @default(now()) @db.Timestamptz
   updated_at DateTime  @updatedAt @db.Timestamptz
@@ -1017,4 +1019,76 @@ model AssetPhoto {
 
   @@index([asset_id])
   @@map("asset_photos")
+}
+
+// ==========================================================
+// ODP FIBER LINKS
+// ==========================================================
+
+model OdpLink {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  from_odp_id String  @db.Uuid
+  to_odp_id   String  @db.Uuid
+  from_port   Int     @default(1)
+  to_port     Int     @default(1)
+  cable_color String? @db.VarChar(20)
+  cable_core  Int?
+  status      String  @default("active") @db.VarChar(20)
+
+  from_odp Odp @relation("OdpFromLink", fields: [from_odp_id], references: [id])
+  to_odp   Odp @relation("OdpToLink", fields: [to_odp_id], references: [id])
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+
+  @@index([from_odp_id])
+  @@index([to_odp_id])
+  @@map("odp_links")
+}
+
+// ==========================================================
+// MONITORING
+// ==========================================================
+
+model MonitoringConfig {
+  id              String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  mikrotik_host   String @db.VarChar(45)
+  mikrotik_port   Int    @default(8728)
+  mikrotik_user   String @db.VarChar(100)
+  mikrotik_pass   String @db.VarChar(255)
+  pppoe_interface String @default("all") @db.VarChar(50)
+  check_interval  Int    @default(60)
+  
+  rx_warning    Float? @default(-27)
+  rx_critical   Float? @default(-30)
+  rx_enabled    Boolean @default(true)
+  pppoe_enabled Boolean @default(true)
+  
+  wa_notify_enabled Boolean @default(false)
+  wa_admin_number   String? @db.VarChar(20)
+
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  deleted_at DateTime? @db.Timestamptz
+  created_by String?   @db.Uuid
+
+  @@map("monitoring_config")
+}
+
+model MonitoringEvent {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_type  String @db.VarChar(50)
+  device_name String? @db.VarChar(200)
+  device_ip   String? @db.VarChar(45)
+  message     String @db.Text
+  severity    String @default("info") @db.VarChar(20)
+  raw_data    Json?
+
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([event_type])
+  @@index([created_at])
+  @@map("monitoring_events")
 }

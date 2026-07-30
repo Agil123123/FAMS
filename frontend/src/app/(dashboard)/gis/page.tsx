@@ -13,6 +13,9 @@ import { SplitterDialog } from '@/components/gis/splitter-dialog';
 import { ConnectCustomerDialog } from '@/components/gis/connect-customer-dialog';
 import { FiberTracePanel } from '@/components/gis/fiber-trace';
 import { buildTopologyIndex, getDownstreamCables, TopologyIndex } from '@/lib/topology';
+import { FiberLinkManager } from '@/components/gis/fiber-link-manager';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 import * as turf from '@turf/turf';
 
 const GisMap = dynamic(() => import('./gis-map'), { ssr: false });
@@ -41,6 +44,13 @@ export default function GisPage() {
   const [showAssets, setShowAssets] = useState(true);
   const [showCustomers, setShowCustomers] = useState(true);
   const [showCables, setShowCables] = useState(true);
+  const [showFiberLinks, setShowFiberLinks] = useState(true);
+
+  const { data: fiberLinkGeoJSON } = useQuery({
+    queryKey: ['fiber-links-geojson'],
+    queryFn: () => api.get('/fiber-links/geojson').then(r => r.data),
+    refetchInterval: 30000,
+  });
 
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<number[][]>([]);
@@ -224,6 +234,7 @@ export default function GisPage() {
             { key: 'showAssets', label: 'Network Assets', icon: Network, color: '#22c55e', state: showAssets, set: setShowAssets },
             { key: 'showCustomers', label: 'Customers', icon: Home, color: '#ef4444', state: showCustomers, set: setShowCustomers },
             { key: 'showCables', label: 'Fiber Cables', icon: Cable, color: '#6366f1', state: showCables, set: setShowCables },
+            { key: 'showFiberLinks', label: 'ODP Fiber Links', icon: Cable, color: '#f59e0b', state: showFiberLinks, set: setShowFiberLinks },
           ].map(layer => (
             <label key={layer.key} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm">
               <input type="checkbox" checked={layer.state} onChange={e => layer.set(e.target.checked)} className="rounded" />
@@ -235,6 +246,7 @@ export default function GisPage() {
           <div className="pt-4 mt-4 border-t border-border">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h3>
             <div className="space-y-1">
+              <FiberLinkManager />
               <button onClick={() => { startEdit(); setShowCableDialog(true); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 text-sm text-left">
                 <Cable className="w-4 h-4 text-primary" /> Create Fiber Cable
@@ -296,10 +308,12 @@ export default function GisPage() {
           showAssets={showAssets}
           showCustomers={showCustomers}
           showCables={showCables}
+          showFiberLinks={showFiberLinks}
           isMeasuring={isMeasuring}
           assets={assets}
           customers={customers}
           cableGeoJSON={cableGeoJSON}
+          fiberLinkGeoJSON={fiberLinkGeoJSON}
           measureGeoJSON={measureGeoJSON}
           traceGeoJSON={traceGeoJSON}
           onMapClick={onMapClick}

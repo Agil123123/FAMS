@@ -1,241 +1,157 @@
 'use client';
-
-import React, { useState } from 'react';
-import { 
-  useMonitoringDashboard, 
-  useAlarms, 
-  useDeviceStatuses, 
-  useResolveAlarm,
-  useTriggerTestAlarm
-} from '@/hooks/use-monitoring';
-import { formatDistanceToNow } from 'date-fns';
-import { 
-  Activity, Bell, Server, CheckCircle2, AlertTriangle, XCircle, Zap, RefreshCw
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { useState } from 'react';
+import { Activity, Wifi, Signal, Play, Pause, Settings, RefreshCw } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/api';
 
 export default function MonitoringPage() {
-  const { data: dashboard, isLoading: dashLoading } = useMonitoringDashboard();
-  const { data: alarms, isLoading: alarmsLoading } = useAlarms();
-  const { data: statuses, isLoading: statusesLoading } = useDeviceStatuses();
-  
-  const resolveAlarm = useResolveAlarm();
-  const triggerAlarm = useTriggerTestAlarm();
+  const queryClient = useQueryClient();
+  const [showConfig, setShowConfig] = useState(false);
 
-  const [testDeviceId, setTestDeviceId] = useState('');
+  const { data: status } = useQuery({
+    queryKey: ['monitoring-status'],
+    queryFn: () => api.get('/monitoring/status').then(r => r.data),
+    refetchInterval: 5000,
+  });
 
-  if (dashLoading || alarmsLoading || statusesLoading) return <div className="p-8">Loading Monitoring Systems...</div>;
+  const { data: config } = useQuery({
+    queryKey: ['monitoring-config'],
+    queryFn: () => api.get('/monitoring/config').then(r => r.data),
+  });
 
-  const handleTestAlarm = () => {
-    if (!testDeviceId) return;
-    triggerAlarm.mutate({
-      device_type: 'ONU',
-      device_id: testDeviceId,
-      severity: 'CRITICAL',
-      message: 'Simulated power failure detected.'
-    });
-    setTestDeviceId('');
-  };
+  const { data: events } = useQuery({
+    queryKey: ['monitoring-events'],
+    queryFn: () => api.get('/monitoring/events').then(r => r.data),
+    refetchInterval: 10000,
+  });
+
+  const startMt = useMutation({
+    mutationFn: () => api.post('/monitoring/start'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['monitoring-status'] }),
+  });
+
+  const stopMt = useMutation({
+    mutationFn: () => api.post('/monitoring/stop'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['monitoring-status'] }),
+  });
+
+  const saveConfig = useMutation({
+    mutationFn: (data: any) => api.post('/monitoring/config', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monitoring-config'] });
+      setShowConfig(false);
+    },
+  });
+
+  const [form, setForm] = useState<any>({});
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">NOC Monitoring</h1>
-          <p className="text-muted-foreground mt-1">Live network telemetry and hardware alarms</p>
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            <Activity className="w-6 h-6" /> Monitoring Real-time
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">PPPoE + RX Power monitor</p>
         </div>
-        <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-lg border">
-          <span className="relative flex h-3 w-3 ml-2 mr-1">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-          <span className="text-xs font-semibold text-muted-foreground pr-2">LIVE SYNC</span>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowConfig(!showConfig)}
+            className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted/50">
+            <Settings className="w-4 h-4" /> Konfigurasi
+          </button>
+          {status?.running ? (
+            <button onClick={() => stopMt.mutate()}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+              <Pause className="w-4 h-4" /> Stop
+            </button>
+          ) : (
+            <button onClick={() => startMt.mutate()}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+              <Play className="w-4 h-4" /> Start
+            </button>
+          )}
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Alarms</p>
-                <h3 className={`text-3xl font-bold mt-1 ${dashboard?.active_alarms && dashboard.active_alarms > 0 ? 'text-red-500' : 'text-foreground'}`}>
-                  {dashboard?.active_alarms || 0}
-                </h3>
-              </div>
-              <div className="p-3 bg-red-100 text-red-600 dark:bg-red-900/30 rounded-full">
-                <Bell className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Offline Devices</p>
-                <h3 className={`text-3xl font-bold mt-1 ${dashboard?.offline_devices && dashboard.offline_devices > 0 ? 'text-orange-500' : 'text-foreground'}`}>
-                  {dashboard?.offline_devices || 0}
-                </h3>
-              </div>
-              <div className="p-3 bg-orange-100 text-orange-600 dark:bg-orange-900/30 rounded-full">
-                <Server className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Work Orders</p>
-                <h3 className="text-3xl font-bold mt-1 text-blue-500">
-                  {dashboard?.active_work_orders || 0}
-                </h3>
-              </div>
-              <div className="p-3 bg-blue-100 text-blue-600 dark:bg-blue-900/30 rounded-full">
-                <Activity className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">System Health</p>
-                <h3 className="text-3xl font-bold mt-1 text-green-500">
-                  {dashboard?.system_health || 100}%
-                </h3>
-              </div>
-              <div className="p-3 bg-green-100 text-green-600 dark:bg-green-900/30 rounded-full">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* STATUS */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2"><Activity className="w-4 h-4" /> Status</div>
+          <div className={`text-lg font-bold ${status?.running ? 'text-green-500' : 'text-red-500'}`}>
+            {status?.running ? 'RUNNING' : 'STOPPED'}
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2"><Wifi className="w-4 h-4" /> PPPoE</div>
+          <div className="text-lg font-bold">{config?.pppoe_enabled ? 'Enabled' : 'Disabled'}</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2"><Signal className="w-4 h-4" /> RX Power</div>
+          <div className="text-lg font-bold">{config?.rx_enabled ? `Warn: ${config.rx_warning} / Crit: ${config.rx_critical} dBm` : 'Disabled'}</div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-        
-        {/* Active Alarm Feed */}
-        <Card className="border-t-4 border-t-red-500">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-              Real-time Alarms
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-              {alarms?.filter(a => !a.is_resolved).map(alarm => (
-                <div key={alarm.id} className="p-4 border border-red-200 bg-red-50 dark:bg-red-950/20 rounded-lg flex items-start justify-between group">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-red-600 text-white rounded">
-                        {alarm.severity}
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground">{alarm.device_type}</span>
-                    </div>
-                    <p className="font-medium text-red-900 dark:text-red-200 text-sm mt-1">{alarm.message}</p>
-                    <p className="text-xs text-muted-foreground mt-2 font-mono">{alarm.device_id}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(alarm.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-green-50 hover:text-green-600 border-gray-200"
-                    onClick={() => resolveAlarm.mutate(alarm.id)}
-                    disabled={resolveAlarm.isPending}
-                  >
-                    Acknowledge
-                  </Button>
+      {/* CONFIG FORM */}
+      {showConfig && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4">Konfigurasi MikroTik & Monitoring</h2>
+          <form onSubmit={e => { e.preventDefault(); saveConfig.mutate(form); }} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-sm mb-1">MikroTik Host</label>
+                <input value={form.mikrotik_host || config?.mikrotik_host || ''} onChange={e => setForm({...form, mikrotik_host: e.target.value})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+              <div><label className="block text-sm mb-1">Port API</label>
+                <input type="number" value={form.mikrotik_port || config?.mikrotik_port || 8728} onChange={e => setForm({...form, mikrotik_port: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+              <div><label className="block text-sm mb-1">Username</label>
+                <input value={form.mikrotik_user || config?.mikrotik_user || ''} onChange={e => setForm({...form, mikrotik_user: e.target.value})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+              <div><label className="block text-sm mb-1">Password</label>
+                <input type="password" value={form.mikrotik_pass || config?.mikrotik_pass || ''} onChange={e => setForm({...form, mikrotik_pass: e.target.value})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><label className="block text-sm mb-1">Check Interval (s)</label>
+                <input type="number" value={form.check_interval || config?.check_interval || 60} onChange={e => setForm({...form, check_interval: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+              <div><label className="block text-sm mb-1">RX Warning (dBm)</label>
+                <input type="number" step="0.1" value={form.rx_warning ?? config?.rx_warning ?? -27} onChange={e => setForm({...form, rx_warning: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+              <div><label className="block text-sm mb-1">RX Critical (dBm)</label>
+                <input type="number" step="0.1" value={form.rx_critical ?? config?.rx_critical ?? -30} onChange={e => setForm({...form, rx_critical: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md" /></div>
+            </div>
+            <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground rounded-md">Simpan Konfigurasi</button>
+          </form>
+        </div>
+      )}
+
+      {/* EVENTS LOG */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <h2 className="font-semibold">Monitoring Events</h2>
+          <button onClick={() => queryClient.invalidateQueries({ queryKey: ['monitoring-events'] })}
+            className="p-1 hover:bg-muted rounded"><RefreshCw className="w-4 h-4" /></button>
+        </div>
+        <div className="divide-y divide-border max-h-96 overflow-y-auto">
+          {(events || []).length === 0 && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Belum ada event. Start monitoring dulu.</div>
+          )}
+          {(events || []).map((e: any) => (
+            <div key={e.id} className="px-5 py-3 text-sm flex items-start gap-3">
+              <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                e.severity === 'critical' ? 'bg-red-500' : e.severity === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+              }`} />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground uppercase">{e.event_type}</span>
+                  <span className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleTimeString()}</span>
                 </div>
-              ))}
-              
-              {(!alarms || alarms.filter(a => !a.is_resolved).length === 0) && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="w-12 h-12 mx-auto text-green-500/50 mb-3" />
-                  <p>All clear. No active alarms.</p>
-                </div>
-              )}
+                <p className="mt-0.5">{e.message}</p>
+              </div>
             </div>
-
-            {/* Dev Tools - Trigger Alarm */}
-            <div className="mt-6 pt-4 border-t flex space-x-2">
-              <input 
-                placeholder="Device UUID to test..." 
-                className="flex-1 text-xs p-2 border rounded font-mono"
-                value={testDeviceId}
-                onChange={e => setTestDeviceId(e.target.value)}
-              />
-              <Button size="sm" variant="destructive" onClick={handleTestAlarm} disabled={!testDeviceId}>
-                <Zap className="w-4 h-4 mr-2" /> Simulate Alarm
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Live Device Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <Server className="w-5 h-5 mr-2 text-blue-500" />
-              Live Hardware Heartbeats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[500px] overflow-y-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b sticky top-0 backdrop-blur-md">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Device</th>
-                    <th className="px-4 py-3 font-medium">State</th>
-                    <th className="px-4 py-3 font-medium text-right">Last Seen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {statuses?.map(status => (
-                    <tr key={status.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3">
-                        <p className="font-bold text-foreground text-xs">{status.device_type}</p>
-                        <p className="font-mono text-[10px] text-muted-foreground truncate max-w-[150px]">{status.device_id}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border
-                          ${status.status === 'ONLINE' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
-                            status.status === 'OFFLINE' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : 
-                            'bg-gray-500/10 text-gray-600 border-gray-500/20'}`}
-                        >
-                          {status.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-muted-foreground font-mono">
-                        {formatDistanceToNow(new Date(status.last_seen), { addSuffix: true })}
-                      </td>
-                    </tr>
-                  ))}
-                  {(!statuses || statuses.length === 0) && (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                        No hardware registered yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
+          ))}
+        </div>
       </div>
     </div>
   );
