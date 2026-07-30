@@ -6,6 +6,40 @@ import { v4 as uuidv4 } from 'uuid';
 export class GisService {
   constructor(private prisma: DatabaseService) {}
 
+  /** Ensure OLT → PonPort → ODC exist, return odc_id */
+  private async ensureOdc(): Promise<string> {
+    const existing = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT id FROM odcs WHERE deleted_at IS NULL LIMIT 1`
+    );
+    if (existing.length > 0) return existing[0].id;
+
+    // Create OLT
+    const oltId = uuidv4();
+    await this.prisma.$executeRawUnsafe(
+      `INSERT INTO olts (id, asset_code, name, created_at, updated_at)
+       VALUES ($1::uuid, 'OLT-AUTO-001', 'Auto-created OLT', NOW(), NOW())`,
+      oltId
+    );
+
+    // Create PonPort
+    const ppId = uuidv4();
+    await this.prisma.$executeRawUnsafe(
+      `INSERT INTO pon_ports (id, olt_id, port_index, created_at, updated_at)
+       VALUES ($1::uuid, $2::uuid, 1, NOW(), NOW())`,
+      ppId, oltId
+    );
+
+    // Create ODC
+    const odcId = uuidv4();
+    await this.prisma.$executeRawUnsafe(
+      `INSERT INTO odcs (id, asset_code, name, pon_port_id, created_at, updated_at)
+       VALUES ($1::uuid, 'ODC-AUTO-001', 'Auto-created ODC', $2::uuid, NOW(), NOW())`,
+      odcId, ppId
+    );
+
+    return odcId;
+  }
+
   async create(body: any, userId: string) {
     const { type, name, longitude, latitude, ...extra } = body;
     const assetCode = `${type.toUpperCase()}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
@@ -20,29 +54,14 @@ export class GisService {
         break;
       }
       case 'odp': {
-        // Auto-find or create a closure for this ODP
-        const closure = await this.prisma.$queryRawUnsafe<any[]>(
-          `SELECT id FROM closures WHERE deleted_at IS NULL LIMIT 1`
+        const odcId = await this.ensureOdc();
+        // Create closure for this ODP
+        const closureId = uuidv4();
+        await this.prisma.$executeRawUnsafe(
+          `INSERT INTO closures (id, asset_code, name, odc_id, created_at, updated_at)
+           VALUES ($1::uuid, $2, $3, $4::uuid, NOW(), NOW())`,
+          closureId, `CLOSURE-${assetCode}`, `Closure for ${name}`, odcId
         );
-        let closureId: string;
-        if (closure.length === 0) {
-          // Auto-create an ODC first, then closure
-          const odcId = uuidv4();
-          await this.prisma.$executeRawUnsafe(
-            `INSERT INTO odcs (id, asset_code, name, pon_port_id, created_at, updated_at)
-             VALUES ($1::uuid, 'ODC-AUTO', 'Auto-created ODC', 
-             (SELECT id FROM pon_ports WHERE deleted_at IS NULL LIMIT 1), NOW(), NOW())`,
-            odcId
-          );
-          closureId = uuidv4();
-          await this.prisma.$executeRawUnsafe(
-            `INSERT INTO closures (id, asset_code, name, odc_id, created_at, updated_at)
-             VALUES ($1::uuid, 'CLOSURE-AUTO', 'Auto-created Closure', $2::uuid, NOW(), NOW())`,
-            closureId, odcId
-          );
-        } else {
-          closureId = closure[0].id;
-        }
         const capacity = extra.capacity || 8;
         const odpCode = extra.odp_code || assetCode;
         await this.prisma.$executeRawUnsafe(
@@ -53,22 +72,7 @@ export class GisService {
         break;
       }
       case 'closure': {
-        // Auto-find or create an ODC
-        let odc = await this.prisma.$queryRawUnsafe<any[]>(
-          `SELECT id FROM odcs WHERE deleted_at IS NULL LIMIT 1`
-        );
-        let odcId: string;
-        if (odc.length === 0) {
-          odcId = uuidv4();
-          await this.prisma.$executeRawUnsafe(
-            `INSERT INTO odcs (id, asset_code, name, pon_port_id, created_at, updated_at)
-             VALUES ($1::uuid, 'ODC-AUTO', 'Auto-created ODC', 
-             (SELECT id FROM pon_ports WHERE deleted_at IS NULL LIMIT 1), NOW(), NOW())`,
-            odcId
-          );
-        } else {
-          odcId = odc[0].id;
-        }
+        const odcId = await this.ensureOdc();
         await this.prisma.$executeRawUnsafe(
           `INSERT INTO closures (id, asset_code, name, odc_id, geom, created_by, created_at, updated_at)
            VALUES ($1::uuid, $2, $3, $4::uuid, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7::uuid, NOW(), NOW())`,
@@ -95,35 +99,30 @@ export class GisService {
   async getAssets() {
     const features: any[] = [];
     
-    // Fetch OLTs
     const olts = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT id, name, asset_code, ST_AsGeoJSON(geom) as geometry 
       FROM olts WHERE deleted_at IS NULL AND geom IS NOT NULL
     `);
     this.pushFeatures(features, olts, 'OLT');
 
-    // Fetch ODCs
     const odcs = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT id, name, asset_code, ST_AsGeoJSON(geom) as geometry 
       FROM odcs WHERE deleted_at IS NULL AND geom IS NOT NULL
     `);
     this.pushFeatures(features, odcs, 'ODC');
 
-    // Fetch ODPs
     const odps = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT id, name, asset_code, ST_AsGeoJSON(geom) as geometry 
       FROM odps WHERE deleted_at IS NULL AND geom IS NOT NULL
     `);
     this.pushFeatures(features, odps, 'ODP');
 
-    // Fetch Closures
     const closures = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT id, name, asset_code, ST_AsGeoJSON(geom) as geometry 
       FROM closures WHERE deleted_at IS NULL AND geom IS NOT NULL
     `);
     this.pushFeatures(features, closures, 'Closure');
 
-    // Fetch Poles
     const poles = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT id, name, asset_code, ST_AsGeoJSON(geom) as geometry 
       FROM poles WHERE deleted_at IS NULL AND geom IS NOT NULL
